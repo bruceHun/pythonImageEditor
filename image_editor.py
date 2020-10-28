@@ -22,9 +22,9 @@ def display_image():
     scale = 0.17
     # print(img[0][0])
     # print(mask[0][0])
-    mask_img = np.where(mask, (0, 0, 0), mask_color).astype(np.uint8)
-    # blend = np.where(mask, img, np.maximum(mask_color, img)).astype(np.uint8)
-    blend = np.maximum(mask_img, img)
+    # mask_img = np.where(mask, (0, 0, 0), mask_color).astype(np.uint8)
+    blend = np.where(mask, img, np.maximum(mask_color, img)).astype(np.uint8)
+    # blend = np.maximum(mask_img, img)
 
     # print(blend[0][0])
 
