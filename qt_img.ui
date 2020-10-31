@@ -35,6 +35,9 @@
       <verstretch>0</verstretch>
      </sizepolicy>
     </property>
+    <property name="mouseTracking">
+     <bool>false</bool>
+    </property>
     <property name="text">
      <string>Photo</string>
     </property>
@@ -68,6 +71,52 @@
      <string>&gt;&gt;</string>
     </property>
    </widget>
+   <widget class="QLabel" name="MaskImage">
+    <property name="geometry">
+     <rect>
+      <x>7</x>
+      <y>4</y>
+      <width>960</width>
+      <height>640</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
+    </property>
+    <property name="scaledContents">
+     <bool>true</bool>
+    </property>
+   </widget>
+   <widget class="QLabel" name="brush_cursor">
+    <property name="geometry">
+     <rect>
+      <x>360</x>
+      <y>210</y>
+      <width>58</width>
+      <height>15</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+    <property name="pixmap">
+     <pixmap>../../../../../Windows/System32/@EnrollmentToastIcon.png</pixmap>
+    </property>
+   </widget>
+   <zorder>brush_cursor</zorder>
+   <zorder>Photo</zorder>
+   <zorder>Prev</zorder>
+   <zorder>Next</zorder>
+   <zorder>MaskImage</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

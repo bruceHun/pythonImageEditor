@@ -10,15 +10,30 @@
 import skimage.io
 import skimage.color
 import numpy as np
+from multiprocessing import Pool
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QWidget, QLabel
 
 
 class Ui_MainWindow(object):
     image_list = []
     mask_list = []
     image_dir = 'images'
-    index = 0
+    index = -1
+    mask_img: np.array = None
+    img_scale = 1.0
+    brush_size = 300
+    brush_img: np.array = None
+    # colors in BGRA
+    colors = {
+        'blank': (0, 0, 0, 0),
+        'pink': (253, 39, 249, 128),
+        'yellow': (0, 255, 255, 128),
+        'white': (255, 255, 255, 255)
+    }
+    resolutions = [(960, 640), (1280, 720)]
+    CW, CH = resolutions[0]
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -31,7 +46,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.Photo = QtWidgets.QLabel(self.centralwidget)
-        self.Photo.setGeometry(QtCore.QRect(7, 4, 960, 640))
+        self.Photo.setGeometry(QtCore.QRect(7, 4, self.CW, self.CH))
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -45,8 +60,14 @@ class Ui_MainWindow(object):
         self.Next = QtWidgets.QPushButton(self.centralwidget)
         self.Next.setGeometry(QtCore.QRect(830, 680, 93, 28))
         self.Next.setObjectName("Next")
+
+        self.brush_cursor = QtWidgets.QLabel(self.centralwidget)
+        self.brush_cursor.setText("")
+        self.brush_cursor.setObjectName("brush_cursor")
+
         self.MaskImage = QtWidgets.QLabel(self.centralwidget)
-        self.MaskImage.setGeometry(QtCore.QRect(7, 4, 960, 640))
+        self.MaskImage.setGeometry(QtCore.QRect(7, 4, self.CW, self.CH))
+        self.MaskImage.setMouseTracking(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -66,10 +87,13 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        # 連結案件功能
-        self.Prev.clicked.connect(lambda:
-                                  self.change_image(False))
+        # 連結按鍵功能
+        self.Prev.clicked.connect(lambda: self.change_image(False))
         self.Next.clicked.connect(lambda: self.change_image(True))
+
+        # 滑鼠事件
+        self.MaskImage.mousePressEvent = self.paint_stroke
+        self.MaskImage.mouseMoveEvent = self.stroke_cursor
 
         # 列出圖片檔名
         import os
@@ -79,7 +103,9 @@ class Ui_MainWindow(object):
                 self.mask_list.append(self.image_dir + '/' + file)
 
         # 設定初始圖片
-        self.Photo.setPixmap(QtGui.QPixmap(self.image_list[self.index]))
+        self.change_image(True)
+        # 產生筆刷游標
+        self.gen_brush()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -87,6 +113,7 @@ class Ui_MainWindow(object):
         self.Photo.setText(_translate("MainWindow", "Photo"))
         self.Prev.setText(_translate("MainWindow", "<<"))
         self.Next.setText(_translate("MainWindow", ">>"))
+        self.brush_cursor.setText(_translate("MainWindow", "brush_cursor"))
         self.MaskImage.setText(_translate("MainWindow", "TextLabel"))
 
     # 切換圖片
@@ -97,14 +124,62 @@ class Ui_MainWindow(object):
             self.index = max(self.index - 1, 0)
 
         self.Photo.setPixmap(QtGui.QPixmap(self.image_list[self.index]))
-        # self.MaskImage.setPixmap(QtGui.QPixmap(self.mask_list[self.index]))
 
-        mask_color = (249, 39, 253, 128)
         mask = skimage.io.imread(self.mask_list[self.index])
-        mask_img = np.where(mask, (0, 0, 0, 0), mask_color).astype(np.uint8)
-        h, w, c = mask_img.shape
-        res = QtGui.QImage(mask_img, w, h, w * c, QtGui.QImage.Format_ARGB32)
+        self.mask_img = np.where(mask, self.colors['blank'], self.colors['pink']).astype(np.uint8)
+
+        self.img_scale = self.MaskImage.height() / self.mask_img.shape[0]
+        print(self.img_scale)
+        self.update_mask()
+
+    def paint_stroke(self, event):
+        if self.mask_img is not None:
+
+            x = int(event.x() / self.img_scale)
+            y = int(event.y() / self.img_scale)
+            print(x, y)
+
+            # for i in range(-100, 100):
+            #     for j in range(-100, 100):
+            #         self.mask_img[y + i][x + j] = (0, 0, 0, 0)
+
+            r = self.brush_size // 2
+            h, w, c = self.mask_img.shape
+            for i in range(-r, r):
+                for j in range(-r, r):
+                    if (i * i + j * j) <= (r * r):
+                        self.mask_img[max(min((y + i), h - 1), 0)][max(min((x + j), w - 1), 0)] = self.colors['blank']
+            self.update_mask()
+
+        else:
+            print('No mask loaded')
+
+    def stroke_cursor(self, event):
+        offset = int((self.brush_size * self.img_scale) / 2)
+        self.brush_cursor.move(event.x() - offset, event.y() - offset)
+        # print(event.x(), event.y())
+
+    def update_mask(self):
+        h, w, c = self.mask_img.shape
+        res = QtGui.QImage(self.mask_img, w, h, w * c, QtGui.QImage.Format_ARGB32)
         self.MaskImage.setPixmap(QtGui.QPixmap(res))
+
+    def gen_brush(self):
+        para = int(self.brush_size * self.img_scale)
+        print(para)
+        r = para // 2
+        self.brush_img = np.zeros((para, para, 4), np.uint8)
+        print(self.brush_img.shape)
+        for i in range(-r, r):
+            for j in range(-r, r):
+                # print (r + i, r + j)
+                if (i * i + j * j) <= (r * r):
+                    self.brush_img[r + i][r + j] = self.colors['yellow']
+                else:
+                    self.brush_img[r + i][r + j] = self.colors['blank']
+
+        img = QtGui.QImage(self.brush_img, para, para, para * 4, QtGui.QImage.Format_ARGB32)
+        self.brush_cursor.setPixmap(QtGui.QPixmap(img))
 
 
 if __name__ == "__main__":
