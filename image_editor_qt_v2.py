@@ -25,8 +25,6 @@ class Ui_MainWindow(object):
     # Variables
     pixmap_img: QtGui.QPixmap = None
     pixmap_mask: QtGui.QPixmap = None
-    display_img: QtWidgets.QGraphicsPixmapItem = None
-    display_mask: QtWidgets.QGraphicsPixmapItem = None
     scene: QtWidgets.QGraphicsScene = None
     zoom_scale = 100
 
@@ -38,9 +36,9 @@ class Ui_MainWindow(object):
     img_scale = 1.0
     brush_size = 300
     brush_raw: np.array = None
-    brush_cursor: QtWidgets.QGraphicsPixmapItem = None
     # colors in BGRA
     global colors
+
     ##
 
     def setupUi(self, MainWindow):
@@ -50,6 +48,17 @@ class Ui_MainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName("gridLayout")
+        self.Photo = QtWidgets.QLabel(self.centralwidget)
+        self.Photo.setObjectName("Photo")
+        self.gridLayout.addWidget(self.Photo, 0, 0, 1, 1)
+        self.MaskImage = QtWidgets.QLabel(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.MaskImage.sizePolicy().hasHeightForWidth())
+        self.MaskImage.setSizePolicy(sizePolicy)
+        self.MaskImage.setObjectName("MaskImage")
+        self.gridLayout.addWidget(self.MaskImage, 0, 0, 1, 1)
         self.SideBar = QtWidgets.QVBoxLayout()
         self.SideBar.setObjectName("SideBar")
         self.listWidget = QtWidgets.QListWidget(self.centralwidget)
@@ -70,7 +79,7 @@ class Ui_MainWindow(object):
         self.FuncBtn5.setMinimumSize(QtCore.QSize(200, 0))
         self.FuncBtn5.setObjectName("FuncBtn5")
         self.SideBar.addWidget(self.FuncBtn5)
-        self.gridLayout.addLayout(self.SideBar, 0, 1, 2, 1)
+        self.gridLayout.addLayout(self.SideBar, 0, 1, 4, 1)
         self.MainScreen = QtWidgets.QHBoxLayout()
         self.MainScreen.setObjectName("MainScreen")
         self.FuncBtn1 = QtWidgets.QPushButton(self.centralwidget)
@@ -86,16 +95,9 @@ class Ui_MainWindow(object):
         self.FuncBtn4.setObjectName("FuncBtn4")
         self.MainScreen.addWidget(self.FuncBtn4)
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
-        self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(1)
-        sizePolicy.setHeightForWidth(self.graphicsView.sizePolicy().hasHeightForWidth())
-        self.graphicsView.setSizePolicy(sizePolicy)
-        self.graphicsView.setSizeIncrement(QtCore.QSize(0, 0))
-        self.graphicsView.setMouseTracking(True)
-        self.graphicsView.setObjectName("graphicsView")
-        self.gridLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
+        self.BrushCursor = QtWidgets.QLabel(self.centralwidget)
+        self.BrushCursor.setObjectName("BrushCursor")
+        self.gridLayout.addWidget(self.BrushCursor, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 798, 22))
@@ -109,17 +111,14 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
         # add Image to GraphicsView
-        # 產生繪圖場景
-        self.scene = QtWidgets.QGraphicsScene()
-        self.graphicsView.setScene(self.scene)
-
         # 連結按鍵功能
         self.FuncBtn1.clicked.connect(lambda: self.change_image(False))
         self.FuncBtn2.clicked.connect(lambda: self.change_image(True))
 
         # 滑鼠事件
-        self.graphicsView.mousePressEvent = self.paint_stroke
-        self.graphicsView.mouseMoveEvent = self.stroke_cursor
+        self.MaskImage.setMouseTracking(True)
+        self.MaskImage.mousePressEvent = self.paint_stroke
+        self.MaskImage.mouseMoveEvent = self.stroke_cursor
 
         # 鍵盤事件
         MainWindow.keyPressEvent = self.key_event
@@ -142,11 +141,14 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.MaskImage.setText(_translate("MainWindow", "TextLabel"))
+        self.Photo.setText(_translate("MainWindow", "TextLabel"))
         self.FuncBtn5.setText(_translate("MainWindow", "Select"))
         self.FuncBtn1.setText(_translate("MainWindow", "<<"))
         self.FuncBtn2.setText(_translate("MainWindow", ">>"))
         self.FuncBtn3.setText(_translate("MainWindow", "Undo"))
         self.FuncBtn4.setText(_translate("MainWindow", "Redo"))
+        self.BrushCursor.setText(_translate("MainWindow", "TextLabel"))
 
     # Custom Methods
     def key_event(self, e):
@@ -157,12 +159,12 @@ class Ui_MainWindow(object):
             self.scale_display(-self.zoom_scale)
 
     def scale_display(self, value: int):
-        image = self.display_img.pixmap()
-        h, w = image.height(), image.width()
+
+        h, w = self.Photo.height(), self.Photo.width()
         image = self.pixmap_img.scaled(w + value, h + value, QtCore.Qt.KeepAspectRatio)
-        self.display_img.setPixmap(image)
+        self.Photo.setPixmap(image)
         image = self.pixmap_mask.scaled(w + value, h + value, QtCore.Qt.KeepAspectRatio)
-        self.display_mask.setPixmap(image)
+        self.MaskImage.setPixmap(image)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, image.width(), image.height()))
         self.img_scale = image.width() / self.mask_raw.shape[1]
 
@@ -175,20 +177,16 @@ class Ui_MainWindow(object):
 
         self.pixmap_img = QtGui.QPixmap(self.image_list[self.index])
         img = self.pixmap_img.scaled(
-            self.graphicsView.width(),
-            self.graphicsView.height(),
+            self.MaskImage.width(),
+            self.MaskImage.height(),
             QtCore.Qt.KeepAspectRatio
         )
-
-        if self.display_img is None:
-            self.display_img = self.scene.addPixmap(img)
-        else:
-            self.display_img.setPixmap(img)
+        self.Photo.setPixmap(img)
 
         mask = skimage.io.imread(self.mask_list[self.index])
         self.mask_raw = np.where(mask, colors.BLANK, colors.PINK).astype(np.uint8)
 
-        self.img_scale = self.graphicsView.width() / self.mask_raw.shape[1]
+        self.img_scale = self.MaskImage.width() / self.mask_raw.shape[1]
         print(self.img_scale)
         self.update_mask()
 
@@ -221,25 +219,15 @@ class Ui_MainWindow(object):
         offset = int((self.brush_size * self.img_scale) / 2)
         # self.brush_cursor.moveBy(event.x() - offset + 6, event.y() - offset + 3)
         self.statusbar.showMessage(f'x: {event.x()}, y: {event.y()}')
-        self.brush_cursor.setPos(QtCore.QPoint(event.x(), event.y()))
 
     def update_mask(self):
         h, w, c = self.mask_raw.shape
         res = QtGui.QImage(self.mask_raw, w, h, w * c, QtGui.QImage.Format_ARGB32)
         self.pixmap_mask = QtGui.QPixmap(res)
 
-        if self.display_mask is None:
-            mask = self.pixmap_mask.scaled(
-                self.graphicsView.width(),
-                self.graphicsView.height(),
-                QtCore.Qt.KeepAspectRatio
-            )
-            self.display_mask = self.scene.addPixmap(mask)
-        else:
-            mask = self.display_img.pixmap()
-            h, w = mask.height(), mask.width()
-            mask = self.pixmap_mask.scaled(w, h, QtCore.Qt.KeepAspectRatio)
-            self.display_mask.setPixmap(mask)
+        h, w = self.MaskImage.height(), self.MaskImage.width()
+        mask = self.pixmap_mask.scaled(w, h, QtCore.Qt.KeepAspectRatio)
+        self.MaskImage.setPixmap(mask)
 
     def gen_brush(self):
         para = int(self.brush_size * self.img_scale)
@@ -256,8 +244,7 @@ class Ui_MainWindow(object):
                     self.brush_raw[r + i][r + j] = colors.BLANK
 
         img = QtGui.QImage(self.brush_raw, para, para, para * 4, QtGui.QImage.Format_ARGB32)
-        self.brush_cursor = self.scene.addPixmap(QtGui.QPixmap(img))
-        # self.brush_cursor.setPixmap(QtGui.QPixmap(img))
+        self.BrushCursor.setPixmap(QtGui.QPixmap(img))
     ##
 
 

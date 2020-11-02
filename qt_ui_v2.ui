@@ -15,7 +15,27 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="1" rowspan="2">
+    <item row="1" column="0" alignment="Qt::AlignLeft|Qt::AlignBottom">
+     <widget class="QLabel" name="MaskImage">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="Photo">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="1" rowspan="4">
      <layout class="QVBoxLayout" name="SideBar">
       <item>
        <widget class="QListWidget" name="listWidget">
@@ -54,7 +74,7 @@
       </item>
      </layout>
     </item>
-    <item row="1" column="0">
+    <item row="3" column="0">
      <layout class="QHBoxLayout" name="MainScreen">
       <item>
        <widget class="QPushButton" name="FuncBtn1">
@@ -86,22 +106,10 @@
       </item>
      </layout>
     </item>
-    <item row="0" column="0">
-     <widget class="QGraphicsView" name="graphicsView">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-        <horstretch>1</horstretch>
-        <verstretch>1</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="sizeIncrement">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="mouseTracking">
-       <bool>true</bool>
+    <item row="2" column="0" alignment="Qt::AlignRight|Qt::AlignBottom">
+     <widget class="QLabel" name="BrushCursor">
+      <property name="text">
+       <string>TextLabel</string>
       </property>
      </widget>
     </item>
