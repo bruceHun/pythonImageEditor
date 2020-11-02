@@ -145,10 +145,13 @@ class Ui_MainWindow(object):
 
             r = self.brush_size // 2
             h, w, c = self.mask_img.shape
+            r_square = r * r
             for i in range(-r, r):
+                i_square = i * i
+                ycord = max(min((y + i), h - 1), 0)
                 for j in range(-r, r):
-                    if (i * i + j * j) <= (r * r):
-                        self.mask_img[max(min((y + i), h - 1), 0)][max(min((x + j), w - 1), 0)] = self.colors['blank']
+                    if (i_square + j * j) <= r_square:
+                        self.mask_img[ycord][max(min((x + j), w - 1), 0)] = self.colors['blank']
             self.update_mask()
 
         else:
@@ -156,8 +159,7 @@ class Ui_MainWindow(object):
 
     def stroke_cursor(self, event):
         offset = int((self.brush_size * self.img_scale) / 2)
-        self.brush_cursor.move(event.x() - offset, event.y() - offset)
-        # print(event.x(), event.y())
+        self.brush_cursor.move(event.x() - offset + 6, event.y() - offset + 3)
 
     def update_mask(self):
         h, w, c = self.mask_img.shape
@@ -180,6 +182,11 @@ class Ui_MainWindow(object):
 
         img = QtGui.QImage(self.brush_img, para, para, para * 4, QtGui.QImage.Format_ARGB32)
         self.brush_cursor.setPixmap(QtGui.QPixmap(img))
+
+    def erase_inner(self, i, x, y, r, w, h):
+        for j in range(-r, r):
+            if (i * i + j * j) <= (r * r):
+                self.mask_img[max(min((y + i), h - 1), 0)][max(min((x + j), w - 1), 0)] = self.colors['blank']
 
 
 if __name__ == "__main__":
