@@ -114,8 +114,9 @@ class Ui_MainWindow(object):
         self.graphicsView.setScene(self.scene)
 
         # 連結按鍵功能
-        self.FuncBtn1.clicked.connect(lambda: self.change_image(False))
-        self.FuncBtn2.clicked.connect(lambda: self.change_image(True))
+        self.FuncBtn1.clicked.connect(lambda: self.change_image(max(self.index - 1, 0)))
+        self.FuncBtn2.clicked.connect(lambda: self.change_image(min(self.index + 1, len(self.image_list) - 1)))
+        self.listWidget.itemSelectionChanged.connect(lambda: self.change_image(self.listWidget.currentRow()))
 
         # 滑鼠事件
         self.graphicsView.mousePressEvent = self.paint_stroke
@@ -134,7 +135,7 @@ class Ui_MainWindow(object):
         self.listWidget.addItems(self.image_list)
 
         # 設定初始圖片
-        self.change_image(True)
+        self.change_image(0)
         # 產生筆刷游標
         self.gen_brush()
         ##
@@ -164,16 +165,22 @@ class Ui_MainWindow(object):
         image = self.pixmap_mask.scaled(w + value, h + value, QtCore.Qt.KeepAspectRatio)
         self.display_mask.setPixmap(image)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, image.width(), image.height()))
-        self.img_scale = image.width() / self.mask_raw.shape[1]
+        self.img_scale = image.width() / self.pixmap_mask.width()
 
     # 切換圖片
-    def change_image(self, forward: bool):
-        if forward:
-            self.index = min(self.index + 1, len(self.image_list) - 1)
+    def change_image(self, _index: int):
+        print(_index)
+        # if forward:
+        #     self.index = min(self.index + 1, len(self.image_list) - 1)
+        # else:
+        #     self.index = max(self.index - 1, 0)
+        if _index == self.index:
+            return
         else:
-            self.index = max(self.index - 1, 0)
+            self.index = _index
+            self.listWidget.setCurrentRow(_index)
 
-        self.pixmap_img = QtGui.QPixmap(self.image_list[self.index])
+        self.pixmap_img = QtGui.QPixmap(self.image_list[_index])
         img = self.pixmap_img.scaled(
             self.graphicsView.width(),
             self.graphicsView.height(),
