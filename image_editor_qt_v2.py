@@ -26,7 +26,6 @@ class Ui_MainWindow(object):
     # Variables
     pixmap_img: QtGui.QPixmap = None
     pixmap_mask: QtGui.QPixmap = None
-    pixmap_color: QtGui.QPixmap = None
     pixmap_brush: QtGui.QPixmap = None
     display_img: QtWidgets.QGraphicsPixmapItem = None
     display_mask: QtWidgets.QGraphicsPixmapItem = None
@@ -44,6 +43,7 @@ class Ui_MainWindow(object):
     brush_cursor: QtWidgets.QGraphicsPixmapItem = None
     painter: QtGui.QPainter = None
     painting: bool = False
+    mask: QtGui.QBitmap = None
     # colors in BGRA
     global colors
     ##
@@ -251,20 +251,16 @@ class Ui_MainWindow(object):
         p = self.painter.pen()
         # p.setWidth(self.brush_size)
         # p.setColor(QtGui.QColor(249, 39, 253, 128))
-        p.setColor(QtGui.QColor(255, 255, 255, 255))
-        # p.setColor(QtGui.QColor(0, 0, 0, 255))
+        # p.setColor(QtGui.QColor(255, 255, 255, 255))
+        p.setColor(QtGui.QColor(0, 0, 0, 0))
         self.painter.setPen(p)
-        self.painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 255)))
+        self.painter.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
         t = self.graphicsView.viewportTransform()
-        curr_x = int((e.x() - t.m31()) / self.img_scale)
-        curr_y = int((e.y() - t.m32()) / self.img_scale)
-        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Lighten)
-        self.painter.drawPixmap(0, 0, self.pixmap_color)
-        r = int(self.brush_size * self.img_scale)
-        print(r)
+        r = self.brush_size
+        curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
+        curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
+        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
         self.painter.drawEllipse(curr_x, curr_y, r, r)
-        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Darken)
-        self.painter.drawPixmap(0, 0, self.pixmap_img)
         self.centralwidget.update()
         self.update_mask()
 
@@ -279,15 +275,11 @@ class Ui_MainWindow(object):
         t = self.graphicsView.viewportTransform()
         offset = int((self.brush_size * self.img_scale) / 2)
         if self.painting:
-            curr_x = int((e.x() - t.m31()) / self.img_scale)
-            curr_y = int((e.y() - t.m32()) / self.img_scale)
-            # self.painter.drawLine(self.last_x, self.last_y, curr_x, curr_y)
-            self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Lighten)
-            self.painter.drawPixmap(0, 0, self.pixmap_color)
-            r = int(self.brush_size * self.img_scale)
-            self.painter.drawEllipse(curr_x - int(r / 2), curr_y - int(r / 2), r, r)
-            self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Darken)
-            self.painter.drawPixmap(0, 0, self.pixmap_img)
+            r = self.brush_size
+            curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
+            curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
+            self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
+            self.painter.drawEllipse(curr_x, curr_y, r, r)
             self.centralwidget.update()
             self.update_mask()
 
@@ -308,11 +300,6 @@ class Ui_MainWindow(object):
 
     # 切換圖片
     def change_image(self, _index: int):
-        print(_index)
-        # if forward:
-        #     self.index = min(self.index + 1, len(self.image_list) - 1)
-        # else:
-        #     self.index = max(self.index - 1, 0)
         if _index == self.index:
             return
         else:
@@ -332,25 +319,18 @@ class Ui_MainWindow(object):
             self.display_img.setPixmap(img)
 
         clayer = np.zeros([self.pixmap_img.height(), self.pixmap_img.width(), 4], dtype=np.uint8)
-        clayer[:, :] = [249, 39, 253, 255]
+        clayer[:, :] = [249, 39, 253, 128]
         print(clayer)
         h, w, c = clayer.shape
-        self.pixmap_color = QtGui.QPixmap(QtGui.QImage(clayer, w, h, w * c, QtGui.QImage.Format_ARGB32))
-        # self.scene.addPixmap(self.pixmap_color)
-        # mask = skimage.io.imread(self.mask_list[self.index])
-        # self.mask_raw = np.where(mask, colors.BLANK, colors.PINK).astype(np.uint8)
-        #
-        # self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
-        # self.img_scale = img.width() / self.pixmap_img.width()
+        self.pixmap_mask = QtGui.QPixmap(QtGui.QImage(clayer, w, h, w * c, QtGui.QImage.Format_ARGB32))
+
+        self.mask = QtGui.QBitmap(self.mask_list[_index])
+        print(self.mask)
+        self.pixmap_mask.setMask(self.mask)
+        self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
+        self.img_scale = img.width() / self.pixmap_img.width()
         # print(self.img_scale)
-        self.pixmap_mask = QtGui.QPixmap(self.mask_list[_index])
-        self.painter = QtGui.QPainter(self.pixmap_mask)
-        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Lighten)
-        self.painter.drawPixmap(0, 0, self.pixmap_color)
-        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Darken)
-        self.painter.drawPixmap(0, 0, self.pixmap_img)
-        self.centralwidget.update()
-        self.painter.end()
+
         self.update_mask()
 
     # 改變筆刷大小
