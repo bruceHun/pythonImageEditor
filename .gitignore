@@ -1,6 +1,7 @@
 images/
+settings.ini
 .DS_Store
-
+*.spec
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
