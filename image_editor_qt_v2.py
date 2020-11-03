@@ -9,17 +9,16 @@
 
 
 import numpy as np
-import copy
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 @dataclass
 class Colors:
-    BLANK = (0, 0, 0, 0)
-    PINK = (253, 39, 249, 128)
-    YELLOW = (0, 255, 255, 128)
-    WHITE = (255, 255, 255, 255)
+    BLANK = QtGui.QColor(0, 0, 0, 0)
+    PINK = QtGui.QColor(249, 39, 253, 128)
+    YELLOW = QtGui.QColor(255, 255, 0, 128)
+    WHITE = QtGui.QColor(255, 255, 255, 255)
 
 
 class Ui_MainWindow(object):
@@ -34,7 +33,7 @@ class Ui_MainWindow(object):
 
     image_list = []
     mask_list = []
-    image_dir = 'images'
+    image_dir = './'
     index = -1
     mask_raw: np.array = None
     img_scale = 1.0
@@ -43,9 +42,11 @@ class Ui_MainWindow(object):
     brush_cursor: QtWidgets.QGraphicsPixmapItem = None
     painter: QtGui.QPainter = None
     painting: bool = False
+    erase_mode: bool = True
     mask: QtGui.QBitmap = None
-    layers = []
-    curr_layer: int = 0
+    pix_buffer = []
+    buffer_idx: int = -1
+    buffer_size: int = 50
     # colors in BGRA
     global colors
     ##
@@ -123,6 +124,10 @@ class Ui_MainWindow(object):
         self.label_2.setSizePolicy(sizePolicy)
         self.label_2.setObjectName("label_2")
         self.controlPanel.addWidget(self.label_2, 2, 2, 1, 1)
+        self.radioButtonErase = QtWidgets.QRadioButton(self.centralwidget)
+        self.radioButtonErase.setChecked(True)
+        self.radioButtonErase.setObjectName("radioButtonErase")
+        self.controlPanel.addWidget(self.radioButtonErase, 3, 0, 1, 1)
         self.SideBar.addLayout(self.controlPanel)
         self.gridLayout.addLayout(self.SideBar, 0, 1, 2, 1)
         self.MainScreen = QtWidgets.QHBoxLayout()
@@ -145,6 +150,24 @@ class Ui_MainWindow(object):
         self.FuncBtn2.setMinimumSize(QtCore.QSize(100, 0))
         self.FuncBtn2.setObjectName("FuncBtn2")
         self.MainScreen.addWidget(self.FuncBtn2)
+        self.FuncBtn5 = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.FuncBtn5.sizePolicy().hasHeightForWidth())
+        self.FuncBtn5.setSizePolicy(sizePolicy)
+        self.FuncBtn5.setMinimumSize(QtCore.QSize(100, 0))
+        self.FuncBtn5.setObjectName("FuncBtn5")
+        self.MainScreen.addWidget(self.FuncBtn5)
+        self.FuncBtn6 = QtWidgets.QPushButton(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.FuncBtn6.sizePolicy().hasHeightForWidth())
+        self.FuncBtn6.setSizePolicy(sizePolicy)
+        self.FuncBtn6.setMinimumSize(QtCore.QSize(100, 0))
+        self.FuncBtn6.setObjectName("FuncBtn6")
+        self.MainScreen.addWidget(self.FuncBtn6)
         self.FuncBtn3 = QtWidgets.QPushButton(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -176,7 +199,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 924, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 924, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -195,14 +218,18 @@ class Ui_MainWindow(object):
         self.FuncBtn1.clicked.connect(lambda: self.change_image(max(self.index - 1, 0)))
         self.FuncBtn2.clicked.connect(lambda: self.change_image(min(self.index + 1, len(self.image_list) - 1)))
         self.FuncBtn3.clicked.connect(self.undo_changes)
+        self.FuncBtn4.clicked.connect(self.redo_changes)
+        self.FuncBtn5.clicked.connect(lambda: self.scale_display(self.zoom_scale))
+        self.FuncBtn6.clicked.connect(lambda: self.scale_display(-self.zoom_scale))
         self.listWidget.itemSelectionChanged.connect(lambda: self.change_image(self.listWidget.currentRow()))
         self.BrushSizeSlider.valueChanged.connect(lambda:
-                                                  self.labelBrushSizeValue.setText(str((self.BrushSizeSlider.value() + 1) / 10))
+                                                  self.labelBrushSizeValue.setText(
+                                                      str((self.BrushSizeSlider.value() + 1) / 10))
                                                   )
         self.BrushSizeSlider.sliderReleased.connect(self.change_brush_size)
+        self.radioButtonErase.clicked.connect(self.erase_mode_flipflop)
 
         # 滑鼠事件
-        self.graphicsView.mousePressEvent = self.paint_stroke
         self.graphicsView.mouseMoveEvent = self.mouse_movement
         self.graphicsView.mousePressEvent = self.start_paint
         self.graphicsView.mouseReleaseEvent = self.end_paint
@@ -214,31 +241,34 @@ class Ui_MainWindow(object):
         import os
         for file in os.listdir(self.image_dir):
             if file.endswith('.TIF') or file.endswith('.tif'):
-                self.image_list.append(self.image_dir + '/' + file[: len(file) - 9] + '.JPG')
-                self.mask_list.append(self.image_dir + '/' + file)
+                self.image_list.append(file[: len(file) - 9] + '.JPG')
+                self.mask_list.append(file)
 
         self.listWidget.addItems(self.image_list)
 
         # 設定初始圖片
         self.change_image(0)
         # 產生筆刷游標
-        self.BrushSizeSlider.setValue(20)
+        self.BrushSizeSlider.setValue(29)
         self.change_brush_size()
         ##
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Mask Editor"))
         self.labelBrushSizeValue.setText(_translate("MainWindow", "00"))
         self.labelBrushSize.setText(_translate("MainWindow", "Brush Size"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
         self.label_2.setText(_translate("MainWindow", "00"))
+        self.radioButtonErase.setText(_translate("MainWindow", "Erase Mode"))
         self.FuncBtn1.setText(_translate("MainWindow", "<<"))
         self.FuncBtn2.setText(_translate("MainWindow", ">>"))
+        self.FuncBtn5.setText(_translate("MainWindow", "+"))
+        self.FuncBtn6.setText(_translate("MainWindow", "-"))
         self.FuncBtn3.setText(_translate("MainWindow", "Undo"))
         self.FuncBtn4.setText(_translate("MainWindow", "Redo"))
 
-    # Custom Methods
+# Custom Methods
     def key_event(self, e):
         if e.key() == QtCore.Qt.Key_Plus or e.key() == QtCore.Qt.Key_BracketRight:
             self.scale_display(self.zoom_scale)
@@ -249,30 +279,21 @@ class Ui_MainWindow(object):
     # 開始繪圖
     def start_paint(self, e):
         self.painting = True
-        # buffer operations
-        if self.curr_layer < (len(self.layers) - 1):
-            del self.layers[self.curr_layer + 1:]
-        self.layers.append(self.pixmap_mask.copy())
-        self.curr_layer += 1
-        print(f'Buffer Size: {len(self.layers)}')
-        ##
-        print(self.curr_layer)
         self.painter = QtGui.QPainter(self.pixmap_mask)
         self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Plus)
         p = self.painter.pen()
-        # p.setWidth(self.brush_size)
-        p.setColor(QtGui.QColor(249, 39, 253, 128))
-        # p.setColor(QtGui.QColor(255, 255, 255, 255))
-        # p.setColor(QtGui.QColor(0, 0, 0, 0))
+        p.setColor(colors.PINK)
         self.painter.setPen(p)
-        self.painter.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
+        self.painter.setBrush(QtGui.QBrush(colors.PINK))
         t = self.graphicsView.viewportTransform()
         r = self.brush_size
         curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
         curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
-        # self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
-        # self.painter.drawEllipse(curr_x, curr_y, r, r)
-        # self.centralwidget.update()
+        self.painter.setCompositionMode(
+            QtGui.QPainter.CompositionMode_Clear if self.erase_mode else QtGui.QPainter.CompositionMode_Source
+        )
+        self.painter.drawEllipse(curr_x, curr_y, r, r)
+        self.centralwidget.update()
         self.update_mask()
 
     # 結束繪圖
@@ -280,6 +301,7 @@ class Ui_MainWindow(object):
         self.painting = False
         # self.update_mask()
         self.painter.end()
+        self.update_buffer()
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e):
@@ -289,7 +311,9 @@ class Ui_MainWindow(object):
             r = self.brush_size
             curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
             curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
-            self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
+            self.painter.setCompositionMode(
+                QtGui.QPainter.CompositionMode_Clear if self.erase_mode else QtGui.QPainter.CompositionMode_Source
+            )
             self.painter.drawEllipse(curr_x, curr_y, r, r)
             self.centralwidget.update()
             self.update_mask()
@@ -317,7 +341,7 @@ class Ui_MainWindow(object):
             self.index = _index
             self.listWidget.setCurrentRow(_index)
 
-        self.pixmap_img = QtGui.QPixmap(self.image_list[_index])
+        self.pixmap_img = QtGui.QPixmap(f'{self.image_dir}/{self.image_list[_index]}')
         img = self.pixmap_img.scaled(
             self.graphicsView.width(),
             self.graphicsView.height(),
@@ -330,23 +354,48 @@ class Ui_MainWindow(object):
             self.display_img.setPixmap(img)
 
         clayer = np.zeros([self.pixmap_img.height(), self.pixmap_img.width(), 4], dtype=np.uint8)
-        clayer[:, :] = [249, 39, 253, 128]
+        clayer[:, :] = [253, 39, 249, 128]
         h, w, c = clayer.shape
         self.pixmap_mask = QtGui.QPixmap(QtGui.QImage(clayer, w, h, w * c, QtGui.QImage.Format_ARGB32))
 
-        self.mask = QtGui.QBitmap(self.mask_list[_index])
+        self.mask = QtGui.QBitmap(f'{self.image_dir}/{self.mask_list[_index]}')
         self.pixmap_mask.setMask(self.mask)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
         self.img_scale = img.width() / self.pixmap_img.width()
-        # print(self.img_scale)
-
+        self.renew_buffer()
         self.update_mask()
+
+    # 更新 Buffer
+    def update_buffer(self):
+        if self.buffer_idx < (len(self.pix_buffer) - 1):
+            del self.pix_buffer[self.buffer_idx + 1:]
+            print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+        self.pix_buffer.append(self.pixmap_mask.copy())
+        if len(self.pix_buffer) > self.buffer_size:
+            self.pix_buffer.pop(0)
+        else:
+            self.buffer_idx += 1
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+
+    # 清空 Buffer
+    def renew_buffer(self):
+        self.pix_buffer.clear()
+        self.buffer_idx = 0
+        self.pix_buffer.append(self.pixmap_mask.copy())
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 復原動作
     def undo_changes(self):
-        self.curr_layer = max(self.curr_layer - 1, 0)
-        print(self.curr_layer)
-        self.pixmap_mask = self.layers[self.curr_layer]
+        self.buffer_idx = max(self.buffer_idx - 1, 0)
+        self.statusbar.showMessage(f'Undo to Buffer Index: {self.buffer_idx}')
+        self.pixmap_mask = self.pix_buffer[self.buffer_idx]
+        self.update_mask()
+
+    # 重做動作
+    def redo_changes(self):
+        self.buffer_idx = min(self.buffer_idx + 1, len(self.pix_buffer) - 1)
+        self.statusbar.showMessage(f'Redo to Buffer Index: {self.buffer_idx}')
+        self.pixmap_mask = self.pix_buffer[self.buffer_idx]
         self.update_mask()
 
     # 改變筆刷大小
@@ -355,35 +404,7 @@ class Ui_MainWindow(object):
         self.brush_size = int(5 * (value + 1))
         self.gen_brush()
 
-    def paint_stroke(self, event):
-        if self.mask_raw is not None:
-            t = self.graphicsView.viewportTransform()
-            x = int((event.x() - t.m31()) / self.img_scale)
-            y = int((event.y() - t.m32()) / self.img_scale)
-            print(x, y)
-
-            # for i in range(-100, 100):
-            #     for j in range(-100, 100):
-            #         self.mask_img[y + i][x + j] = (0, 0, 0, 0)
-
-            r = self.brush_size // 2
-            h, w, c = self.mask_raw.shape
-            r_square = r * r
-            for i in range(-r, r):
-                i_square = i * i
-                ycord = max(min((y + i), h - 1), 0)
-                for j in range(-r, r):
-                    if (i_square + j * j) <= r_square:
-                        self.mask_raw[ycord][max(min((x + j), w - 1), 0)] = colors.BLANK
-            self.update_mask()
-
-        else:
-            print('No mask loaded')
-
     def update_mask(self):
-        # h, w, c = self.mask_raw.shape
-        # res = QtGui.QImage(self.mask_raw, w, h, w * c, QtGui.QImage.Format_ARGB32)
-        # self.pixmap_mask = QtGui.QPixmap(res)
 
         if self.display_mask is None:
             mask = self.pixmap_mask.scaled(
@@ -408,32 +429,16 @@ class Ui_MainWindow(object):
             QtGui.QBrush(QtGui.QColor(255, 255, 0, 128))
         )
         self.brush_cursor.setScale(self.img_scale)
-        # r = self.brush_size // 2
-        # self.brush_raw = np.zeros((self.brush_size, self.brush_size, 4), np.uint8)
-        # print(self.brush_raw.shape)
-        # for i in range(-r, r):
-        #     for j in range(-r, r):
-        #         # print (r + i, r + j)
-        #         if (i * i + j * j) <= (r * r):
-        #             self.brush_raw[r + i][r + j] = colors.YELLOW
-        #         else:
-        #             self.brush_raw[r + i][r + j] = colors.BLANK
-        #
-        # img = QtGui.QImage(
-        #     self.brush_raw,
-        #     self.brush_size,
-        #     self.brush_size,
-        #     self.brush_size * 4,
-        #     QtGui.QImage.Format_ARGB32
-        # )
-        # self.pixmap_brush = QtGui.QPixmap(img)
-        # scale = int(self.img_scale * self.brush_size) * 10
-        # display = self.pixmap_brush.scaled(scale, scale, QtCore.Qt.KeepAspectRatio)
-        # if self.brush_cursor is None:
-        #     self.brush_cursor = self.scene.addPixmap(display)
-        # else:
-        #     self.brush_cursor.setPixmap(display)
-    ##
+
+    def erase_mode_flipflop(self):
+        self.erase_mode = not self.erase_mode
+        msg = 'Erase Mode' if self.erase_mode else 'Paint Mode'
+        self.statusbar.showMessage(msg)
+
+    def getfile(self):
+        self.image_dir = str(QtWidgets.QFileDialog.getExistingDirectory(None, "Select Directory"))
+        print(self.image_dir)
+##
 
 
 if __name__ == "__main__":
@@ -442,6 +447,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
+    ui.getfile()
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
