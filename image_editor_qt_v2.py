@@ -9,7 +9,7 @@
 
 
 import numpy as np
-import skimage.io
+import copy
 from dataclasses import dataclass
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -44,6 +44,8 @@ class Ui_MainWindow(object):
     painter: QtGui.QPainter = None
     painting: bool = False
     mask: QtGui.QBitmap = None
+    layers = []
+    curr_layer: int = 0
     # colors in BGRA
     global colors
     ##
@@ -192,6 +194,7 @@ class Ui_MainWindow(object):
         # 連結 UI 功能
         self.FuncBtn1.clicked.connect(lambda: self.change_image(max(self.index - 1, 0)))
         self.FuncBtn2.clicked.connect(lambda: self.change_image(min(self.index + 1, len(self.image_list) - 1)))
+        self.FuncBtn3.clicked.connect(self.undo_changes)
         self.listWidget.itemSelectionChanged.connect(lambda: self.change_image(self.listWidget.currentRow()))
         self.BrushSizeSlider.valueChanged.connect(lambda:
                                                   self.labelBrushSizeValue.setText(str((self.BrushSizeSlider.value() + 1) / 10))
@@ -246,22 +249,30 @@ class Ui_MainWindow(object):
     # 開始繪圖
     def start_paint(self, e):
         self.painting = True
+        # buffer operations
+        if self.curr_layer < (len(self.layers) - 1):
+            del self.layers[self.curr_layer + 1:]
+        self.layers.append(self.pixmap_mask.copy())
+        self.curr_layer += 1
+        print(f'Buffer Size: {len(self.layers)}')
+        ##
+        print(self.curr_layer)
         self.painter = QtGui.QPainter(self.pixmap_mask)
         self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Plus)
         p = self.painter.pen()
         # p.setWidth(self.brush_size)
-        # p.setColor(QtGui.QColor(249, 39, 253, 128))
+        p.setColor(QtGui.QColor(249, 39, 253, 128))
         # p.setColor(QtGui.QColor(255, 255, 255, 255))
-        p.setColor(QtGui.QColor(0, 0, 0, 0))
+        # p.setColor(QtGui.QColor(0, 0, 0, 0))
         self.painter.setPen(p)
         self.painter.setBrush(QtGui.QBrush(QtGui.QColor(0, 0, 0, 0)))
         t = self.graphicsView.viewportTransform()
         r = self.brush_size
         curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
         curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
-        self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
-        self.painter.drawEllipse(curr_x, curr_y, r, r)
-        self.centralwidget.update()
+        # self.painter.setCompositionMode(QtGui.QPainter.CompositionMode_Clear)
+        # self.painter.drawEllipse(curr_x, curr_y, r, r)
+        # self.centralwidget.update()
         self.update_mask()
 
     # 結束繪圖
@@ -284,7 +295,7 @@ class Ui_MainWindow(object):
             self.update_mask()
 
         self.statusbar.showMessage(f'x: {e.x()}, y: {e.y()}')
-        self.brush_cursor.setPos(QtCore.QPoint(e.x() - offset - t.m31(), e.y() - offset - t.m32()))
+        self.brush_cursor.setPos(QtCore.QPoint(int(e.x() - offset - t.m31()), int(e.y() - offset - t.m32())))
 
     # 調整顯示大小
     def scale_display(self, value: int):
@@ -320,17 +331,22 @@ class Ui_MainWindow(object):
 
         clayer = np.zeros([self.pixmap_img.height(), self.pixmap_img.width(), 4], dtype=np.uint8)
         clayer[:, :] = [249, 39, 253, 128]
-        print(clayer)
         h, w, c = clayer.shape
         self.pixmap_mask = QtGui.QPixmap(QtGui.QImage(clayer, w, h, w * c, QtGui.QImage.Format_ARGB32))
 
         self.mask = QtGui.QBitmap(self.mask_list[_index])
-        print(self.mask)
         self.pixmap_mask.setMask(self.mask)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
         self.img_scale = img.width() / self.pixmap_img.width()
         # print(self.img_scale)
 
+        self.update_mask()
+
+    # 復原動作
+    def undo_changes(self):
+        self.curr_layer = max(self.curr_layer - 1, 0)
+        print(self.curr_layer)
+        self.pixmap_mask = self.layers[self.curr_layer]
         self.update_mask()
 
     # 改變筆刷大小
