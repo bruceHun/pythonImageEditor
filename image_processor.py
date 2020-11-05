@@ -3,12 +3,11 @@ import numpy as np
 from dataclasses import dataclass
 import configparser
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget, QStatusBar, QListWidget, \
-    QSlider, QFileDialog, QDialog, QPushButton
+    QSlider, QFileDialog, QDialog, QPushButton, QDoubleSpinBox
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen
 from PyQt5 import QtCore
 from savedialog import Ui_SaveDialog
 from deletedialog import Ui_DeleteDialog
-
 
 
 @dataclass
@@ -19,7 +18,38 @@ class Colors:
     WHITE = QColor(255, 255, 255, 255)
 
 
+class UIReferences:
+    root: QWidget = None
+    viewport: QGraphicsView = None
+    statusbar: QStatusBar = None
+    file_list_widget: QListWidget = None
+    brush_size_slide: QSlider = None
+    brush_size_dsb: QDoubleSpinBox = None
+    prev_btn: QPushButton = None
+    next_btn: QPushButton = None
+
+    def __init__(self,
+                 _root: QWidget,
+                 _viewport: QGraphicsView,
+                 _statusbar: QStatusBar,
+                 _file_list_widget: QListWidget,
+                 _brush_size_slide: QSlider,
+                 _brush_size_dsb: QDoubleSpinBox,
+                 _prev_btn: QPushButton,
+                 _next_btn: QPushButton
+                 ):
+        self.root = _root
+        self.viewport = _viewport
+        self.statusbar = _statusbar
+        self.file_list_widget = _file_list_widget
+        self.brush_size_slide = _brush_size_slide
+        self.brush_size_dsb = _brush_size_dsb
+        self.prev_btn = _prev_btn
+        self.next_btn = _next_btn
+
+
 class ImageProcessor:
+    #
     pixmap_img: QPixmap = None
     pixmap_mask: QPixmap = None
     pixmap_brush: QPixmap = None
@@ -27,12 +57,12 @@ class ImageProcessor:
     display_mask: QGraphicsPixmapItem = None
     scene: QGraphicsScene = None
     zoom_scale = 100
-
+    # 檔案相關
     image_list = []
     mask_list = []
     image_dir = './'
     index = -1
-    mask_raw: np.array = None
+    # 繪圖相關
     img_scale = 1.0
     brush_size = 300
     brush_cursor: QGraphicsPixmapItem = None
@@ -40,15 +70,14 @@ class ImageProcessor:
     painting: bool = False
     erase_mode: bool = True
     mask: QBitmap = None
+    colors = Colors()
+    # 緩衝區相關
     pix_buffer = []
     buffer_idx: int = -1
     buffer_size: int = 50
-    colors = Colors()
-    root: QWidget = None
-    viewport: QGraphicsView = None
-    statusbar: QStatusBar = None
-    file_list_widget: QListWidget = None
-    brush_size_slide: QSlider = None
+    # 上層顯示物件
+    ui: UIReferences = None
+    # 設定檔解析器
     config: configparser = None
 
     def init(self):
@@ -99,7 +128,7 @@ class ImageProcessor:
         p.setColor(self.colors.PINK)
         self.painter.setPen(p)
         self.painter.setBrush(QBrush(self.colors.PINK))
-        t = self.viewport.viewportTransform()
+        t = self.ui.viewport.viewportTransform()
         r = self.brush_size
         curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
         curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
@@ -107,7 +136,7 @@ class ImageProcessor:
             QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
         )
         self.painter.drawEllipse(curr_x, curr_y, r, r)
-        self.root.update()
+        self.ui.root.update()
         self.update_mask()
 
     # 結束繪圖
@@ -119,7 +148,7 @@ class ImageProcessor:
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e):
-        t = self.viewport.viewportTransform()
+        t = self.ui.viewport.viewportTransform()
         offset = int((self.brush_size * self.img_scale) / 2)
         if self.painting:
             r = self.brush_size
@@ -129,10 +158,10 @@ class ImageProcessor:
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
             )
             self.painter.drawEllipse(curr_x, curr_y, r, r)
-            self.root.update()
+            self.ui.root.update()
             self.update_mask()
 
-        self.statusbar.showMessage(f'x: {e.x()}, y: {e.y()}')
+        self.ui.statusbar.showMessage(f'x: {e.x()}, y: {e.y()}')
         self.brush_cursor.setPos(QtCore.QPoint(int(e.x() - offset - t.m31()), int(e.y() - offset - t.m32())))
 
     # 調整顯示大小
@@ -149,6 +178,8 @@ class ImageProcessor:
 
     # 切換圖片
     def change_image(self, _index: int):
+        self.ui.prev_btn.setDisabled(True)
+        self.ui.next_btn.setDisabled(True)
         if len(self.pix_buffer) > 1:
             sig = []
             save_dialog = QDialog()
@@ -157,6 +188,8 @@ class ImageProcessor:
             save_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             save_dialog.exec()
             if sig[0] == 3:
+                self.ui.prev_btn.setDisabled(False)
+                self.ui.next_btn.setDisabled(False)
                 return
             if sig[0] == 1:
                 self.save_mask()
@@ -165,12 +198,12 @@ class ImageProcessor:
         #     return
         # else:
         self.index = _index
-        self.file_list_widget.setCurrentRow(_index)
+        self.ui.file_list_widget.setCurrentRow(_index)
 
         self.pixmap_img = QPixmap(f'{self.image_dir}/{self.image_list[_index]}')
         img = self.pixmap_img.scaled(
-            self.viewport.width(),
-            self.viewport.height(),
+            self.ui.viewport.width(),
+            self.ui.viewport.height(),
             QtCore.Qt.KeepAspectRatio
         )
 
@@ -190,6 +223,8 @@ class ImageProcessor:
         self.img_scale = img.width() / self.pixmap_img.width()
         self.renew_buffer()
         self.update_mask()
+        self.ui.prev_btn.setDisabled(False)
+        self.ui.next_btn.setDisabled(False)
 
     # 更新 Buffer
     def update_buffer(self):
@@ -213,21 +248,23 @@ class ImageProcessor:
     # 復原動作
     def undo_changes(self):
         self.buffer_idx = max(self.buffer_idx - 1, 0)
-        self.statusbar.showMessage(f'Undo to Buffer Index: {self.buffer_idx}')
+        self.ui.statusbar.showMessage(f'Undo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
         self.update_mask()
 
     # 重做動作
     def redo_changes(self):
         self.buffer_idx = min(self.buffer_idx + 1, len(self.pix_buffer) - 1)
-        self.statusbar.showMessage(f'Redo to Buffer Index: {self.buffer_idx}')
+        self.ui.statusbar.showMessage(f'Redo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
         self.update_mask()
 
     # 改變筆刷大小
-    def change_brush_size(self):
-        value = self.brush_size_slide.value()
-        self.brush_size = int((value + 1) * 10)
+    def change_brush_size(self, updateFromSpinbox: bool):
+        value = self.ui.brush_size_dsb.value()
+        if updateFromSpinbox:
+            self.ui.brush_size_slide.setSliderPosition((value * 10) - 1)
+        self.brush_size = int(value * 100)
         self.gen_brush()
 
     # 更新顯示遮罩
@@ -235,8 +272,8 @@ class ImageProcessor:
 
         if self.display_mask is None:
             mask = self.pixmap_mask.scaled(
-                self.viewport.width(),
-                self.viewport.height(),
+                self.ui.viewport.width(),
+                self.ui.viewport.height(),
                 QtCore.Qt.KeepAspectRatio
             )
             self.display_mask = self.scene.addPixmap(mask)
@@ -262,7 +299,7 @@ class ImageProcessor:
     def erase_mode_flipflop(self):
         self.erase_mode = not self.erase_mode
         msg = "Switch to 'Erase' Mode" if self.erase_mode else "Switch to 'Paint' Mode"
-        self.statusbar.showMessage(msg)
+        self.ui.statusbar.showMessage(msg)
 
     # 選擇圖檔資料夾
     def getfile(self):
@@ -286,7 +323,7 @@ class ImageProcessor:
         # self.pixmap_mask.save(path)
         bit = self.pixmap_mask.createMaskFromColor(self.colors.BLANK)
         bit.save(path)
-        self.statusbar.showMessage(f'Mask image saved ({path})')
+        self.ui.statusbar.showMessage(f'Mask image saved ({path})')
 
     def delete_mask(self):
         sig = []
@@ -299,14 +336,14 @@ class ImageProcessor:
         if sig[0] == 1:
             idx = self.index
             moveto = (idx + 1) if idx < (len(self.image_list) - 1) else (idx - 1)
-            self.file_list_widget.setCurrentRow(moveto)
+            self.ui.file_list_widget.setCurrentRow(moveto)
             path = f'{self.image_dir}/{self.mask_list[idx]}'
             os.remove(path)
-            self.file_list_widget.takeItem(idx)
+            self.ui.file_list_widget.takeItem(idx)
             self.image_list.pop(idx)
             self.mask_list.pop(idx)
             self.index = moveto if idx > moveto else idx
-            self.statusbar.showMessage(f'File "{path}" has been deleted')
+            self.ui.statusbar.showMessage(f'File "{path}" has been deleted')
 
 
 

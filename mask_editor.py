@@ -9,7 +9,7 @@
 
 
 from PyQt5 import QtCore, QtWidgets
-from image_processor import ImageProcessor
+from image_processor import ImageProcessor, UIReferences
 
 
 class Ui_MainWindow(object):
@@ -19,6 +19,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(924, 536)
+        MainWindow.setStyleSheet("background-color: rgb(60, 60, 60);")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -32,19 +33,13 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.listWidget.sizePolicy().hasHeightForWidth())
         self.listWidget.setSizePolicy(sizePolicy)
         self.listWidget.setMinimumSize(QtCore.QSize(200, 0))
+        self.listWidget.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(22, 22, 22);")
         self.listWidget.setObjectName("listWidget")
         self.SideBar.addWidget(self.listWidget)
         self.controlPanel = QtWidgets.QGridLayout()
         self.controlPanel.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self.controlPanel.setObjectName("controlPanel")
-        self.labelBrushSizeValue = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.labelBrushSizeValue.sizePolicy().hasHeightForWidth())
-        self.labelBrushSizeValue.setSizePolicy(sizePolicy)
-        self.labelBrushSizeValue.setObjectName("labelBrushSizeValue")
-        self.controlPanel.addWidget(self.labelBrushSizeValue, 1, 2, 1, 1)
         self.BrushSizeSlider = QtWidgets.QSlider(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -61,6 +56,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.labelBrushSize.sizePolicy().hasHeightForWidth())
         self.labelBrushSize.setSizePolicy(sizePolicy)
+        self.labelBrushSize.setStyleSheet("color: rgb(255, 255, 255);")
         self.labelBrushSize.setObjectName("labelBrushSize")
         self.controlPanel.addWidget(self.labelBrushSize, 1, 0, 1, 1)
         self.horizontalSlider_2 = QtWidgets.QSlider(self.centralwidget)
@@ -79,20 +75,37 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
         self.label.setSizePolicy(sizePolicy)
+        self.label.setStyleSheet("color: rgb(255, 255, 255);")
         self.label.setObjectName("label")
         self.controlPanel.addWidget(self.label, 2, 0, 1, 1)
-        self.label_2 = QtWidgets.QLabel(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
-        self.label_2.setSizePolicy(sizePolicy)
-        self.label_2.setObjectName("label_2")
-        self.controlPanel.addWidget(self.label_2, 2, 2, 1, 1)
         self.radioButtonErase = QtWidgets.QRadioButton(self.centralwidget)
+        self.radioButtonErase.setStyleSheet("color: rgb(255, 255, 255);")
         self.radioButtonErase.setChecked(True)
         self.radioButtonErase.setObjectName("radioButtonErase")
         self.controlPanel.addWidget(self.radioButtonErase, 3, 0, 1, 1)
+        self.BrushSizeValueDSB = QtWidgets.QDoubleSpinBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.BrushSizeValueDSB.sizePolicy().hasHeightForWidth())
+        self.BrushSizeValueDSB.setSizePolicy(sizePolicy)
+        self.BrushSizeValueDSB.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.BrushSizeValueDSB.setDecimals(1)
+        self.BrushSizeValueDSB.setMinimum(1.0)
+        self.BrushSizeValueDSB.setMaximum(10.0)
+        self.BrushSizeValueDSB.setObjectName("BrushSizeValueDSB")
+        self.controlPanel.addWidget(self.BrushSizeValueDSB, 1, 2, 1, 1)
+        self.doubleSpinBox_2 = QtWidgets.QDoubleSpinBox(self.centralwidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.doubleSpinBox_2.sizePolicy().hasHeightForWidth())
+        self.doubleSpinBox_2.setSizePolicy(sizePolicy)
+        self.doubleSpinBox_2.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.doubleSpinBox_2.setDecimals(1)
+        self.doubleSpinBox_2.setMaximum(10.0)
+        self.doubleSpinBox_2.setObjectName("doubleSpinBox_2")
+        self.controlPanel.addWidget(self.doubleSpinBox_2, 2, 2, 1, 1)
         self.SideBar.addLayout(self.controlPanel)
         self.gridLayout.addLayout(self.SideBar, 0, 1, 2, 1)
         self.MainScreen = QtWidgets.QHBoxLayout()
@@ -105,6 +118,8 @@ class Ui_MainWindow(object):
         self.FuncBtn1.setSizePolicy(sizePolicy)
         self.FuncBtn1.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn1.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn1.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn1.setObjectName("FuncBtn1")
         self.MainScreen.addWidget(self.FuncBtn1)
         self.FuncBtn2 = QtWidgets.QPushButton(self.centralwidget)
@@ -115,6 +130,8 @@ class Ui_MainWindow(object):
         self.FuncBtn2.setSizePolicy(sizePolicy)
         self.FuncBtn2.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn2.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn2.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn2.setObjectName("FuncBtn2")
         self.MainScreen.addWidget(self.FuncBtn2)
         self.FuncBtn5 = QtWidgets.QPushButton(self.centralwidget)
@@ -125,6 +142,8 @@ class Ui_MainWindow(object):
         self.FuncBtn5.setSizePolicy(sizePolicy)
         self.FuncBtn5.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn5.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn5.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn5.setObjectName("FuncBtn5")
         self.MainScreen.addWidget(self.FuncBtn5)
         self.FuncBtn6 = QtWidgets.QPushButton(self.centralwidget)
@@ -135,6 +154,8 @@ class Ui_MainWindow(object):
         self.FuncBtn6.setSizePolicy(sizePolicy)
         self.FuncBtn6.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn6.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn6.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn6.setObjectName("FuncBtn6")
         self.MainScreen.addWidget(self.FuncBtn6)
         self.FuncBtn3 = QtWidgets.QPushButton(self.centralwidget)
@@ -145,6 +166,8 @@ class Ui_MainWindow(object):
         self.FuncBtn3.setSizePolicy(sizePolicy)
         self.FuncBtn3.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn3.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn3.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn3.setObjectName("FuncBtn3")
         self.MainScreen.addWidget(self.FuncBtn3)
         self.FuncBtn4 = QtWidgets.QPushButton(self.centralwidget)
@@ -155,6 +178,8 @@ class Ui_MainWindow(object):
         self.FuncBtn4.setSizePolicy(sizePolicy)
         self.FuncBtn4.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn4.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn4.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn4.setObjectName("FuncBtn4")
         self.MainScreen.addWidget(self.FuncBtn4)
         self.FuncBtn7 = QtWidgets.QPushButton(self.centralwidget)
@@ -165,6 +190,8 @@ class Ui_MainWindow(object):
         self.FuncBtn7.setSizePolicy(sizePolicy)
         self.FuncBtn7.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn7.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn7.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn7.setObjectName("FuncBtn7")
         self.MainScreen.addWidget(self.FuncBtn7)
         self.FuncBtn8 = QtWidgets.QPushButton(self.centralwidget)
@@ -175,6 +202,8 @@ class Ui_MainWindow(object):
         self.FuncBtn8.setSizePolicy(sizePolicy)
         self.FuncBtn8.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn8.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn8.setStyleSheet("color: rgb(255, 255, 255);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn8.setObjectName("FuncBtn8")
         self.MainScreen.addWidget(self.FuncBtn8)
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
@@ -186,14 +215,16 @@ class Ui_MainWindow(object):
         self.graphicsView.setSizePolicy(sizePolicy)
         self.graphicsView.setSizeIncrement(QtCore.QSize(0, 0))
         self.graphicsView.setMouseTracking(True)
+        self.graphicsView.setStyleSheet("background-color: rgb(0, 0, 0);")
         self.graphicsView.setObjectName("graphicsView")
         self.gridLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 924, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 924, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
+        self.statusbar.setStyleSheet("color: rgb(254, 204, 9);")
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
@@ -203,10 +234,8 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Mask Editor"))
-        self.labelBrushSizeValue.setText(_translate("MainWindow", "00"))
         self.labelBrushSize.setText(_translate("MainWindow", "Brush Size"))
         self.label.setText(_translate("MainWindow", "TextLabel"))
-        self.label_2.setText(_translate("MainWindow", "00"))
         self.radioButtonErase.setText(_translate("MainWindow", "Erase Mode"))
         self.FuncBtn1.setText(_translate("MainWindow", "<<"))
         self.FuncBtn2.setText(_translate("MainWindow", ">>"))
@@ -224,15 +253,21 @@ class Ui_MainWindow(object):
 
         # 初始化 ImageProcessor
         self.IP.init()
-        self.IP.root = self.centralwidget
-        self.IP.viewport = self.graphicsView
-        self.IP.statusbar = self.statusbar
-        self.IP.file_list_widget = self.listWidget
-        self.IP.brush_size_slide = self.BrushSizeSlider
+        self.IP.ui = UIReferences(
+            self.centralwidget,
+            self.graphicsView,
+            self.statusbar,
+            self.listWidget,
+            self.BrushSizeSlider,
+            self.BrushSizeValueDSB,
+            self.FuncBtn1,
+            self.FuncBtn2
+        )
 
         # 連結 UI 功能
         self.FuncBtn1.clicked.connect(lambda: self.listWidget.setCurrentRow(max(self.IP.index - 1, 0)))
-        self.FuncBtn2.clicked.connect(lambda: self.listWidget.setCurrentRow(min(self.IP.index + 1, len(self.IP.image_list) - 1)))
+        self.FuncBtn2.clicked.connect(
+            lambda: self.listWidget.setCurrentRow(min(self.IP.index + 1, len(self.IP.image_list) - 1)))
         self.FuncBtn3.clicked.connect(self.IP.undo_changes)
         self.FuncBtn4.clicked.connect(self.IP.redo_changes)
         self.FuncBtn5.clicked.connect(lambda: self.IP.scale_display(self.IP.zoom_scale))
@@ -241,10 +276,10 @@ class Ui_MainWindow(object):
         self.FuncBtn8.clicked.connect(self.IP.delete_mask)
         self.listWidget.itemSelectionChanged.connect(lambda: self.IP.change_image(self.listWidget.currentRow()))
         self.BrushSizeSlider.valueChanged.connect(lambda:
-                                                  self.labelBrushSizeValue.setText(
-                                                      str((self.BrushSizeSlider.value() + 1) / 10))
+                                                  self.BrushSizeValueDSB.setValue((self.BrushSizeSlider.value() + 1) / 10)
                                                   )
-        self.BrushSizeSlider.sliderReleased.connect(self.IP.change_brush_size)
+        self.BrushSizeSlider.sliderReleased.connect(lambda: self.IP.change_brush_size(False))
+        self.BrushSizeValueDSB.editingFinished.connect(lambda: self.IP.change_brush_size(True))
         self.radioButtonErase.clicked.connect(self.IP.erase_mode_flipflop)
 
         # 滑鼠事件
@@ -264,8 +299,8 @@ class Ui_MainWindow(object):
         # 設定初始圖片
         self.IP.change_image(self.IP.index)
         # 產生筆刷游標
-        self.BrushSizeSlider.setValue((self.IP.brush_size // 10) - 1)
-        self.IP.change_brush_size()
+        self.BrushSizeValueDSB.setValue(self.IP.brush_size // 100)
+        self.IP.change_brush_size(True)
         ##
 
 
