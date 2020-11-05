@@ -10,6 +10,7 @@
 
 from PyQt5 import QtCore, QtWidgets
 from image_processor import ImageProcessor, UIReferences
+from launch_window import Ui_LaunchWindow
 
 
 class Ui_MainWindow(object):
@@ -247,9 +248,17 @@ class Ui_MainWindow(object):
         self.FuncBtn8.setText(_translate("MainWindow", "Delete"))
 
         # 手動設定
+        # 顯示載入畫面
+        launch_window = QtWidgets.QDialog()
+        lui = Ui_LaunchWindow()
+        lui.setupUi(launch_window)
+        launch_window.show()
+
         # 產生繪圖場景
         self.IP.scene = QtWidgets.QGraphicsScene()
         self.graphicsView.setScene(self.IP.scene)
+        lui.progressBar.setValue(10)
+        lui.label_2.setText('Initializing ImageProcessor...')
 
         # 初始化 ImageProcessor
         self.IP.init()
@@ -263,7 +272,8 @@ class Ui_MainWindow(object):
             self.FuncBtn1,
             self.FuncBtn2
         )
-
+        lui.progressBar.setValue(20)
+        lui.label_2.setText('Linking functions...')
         # 連結 UI 功能
         self.FuncBtn1.clicked.connect(lambda: self.listWidget.setCurrentRow(max(self.IP.index - 1, 0)))
         self.FuncBtn2.clicked.connect(
@@ -281,7 +291,8 @@ class Ui_MainWindow(object):
         self.BrushSizeSlider.sliderReleased.connect(lambda: self.IP.change_brush_size(False))
         self.BrushSizeValueDSB.editingFinished.connect(lambda: self.IP.change_brush_size(True))
         self.radioButtonErase.clicked.connect(self.IP.erase_mode_flipflop)
-
+        lui.progressBar.setValue(30)
+        lui.label_2.setText('Setting callbacks...')
         # 滑鼠事件
         self.graphicsView.mouseMoveEvent = self.IP.mouse_movement
         self.graphicsView.mousePressEvent = self.IP.start_paint
@@ -295,12 +306,18 @@ class Ui_MainWindow(object):
 
         # 檔案列表
         self.listWidget.addItems(self.IP.image_list)
-
+        lui.progressBar.setValue(40)
+        lui.label_2.setText('Setting initial image...')
         # 設定初始圖片
         self.IP.change_image(self.IP.index)
+        lui.progressBar.setValue(80)
+        lui.label_2.setText('Opening Editor...')
         # 產生筆刷游標
         self.BrushSizeValueDSB.setValue(self.IP.brush_size // 100)
         self.IP.change_brush_size(True)
+        lui.progressBar.setValue(100)
+        # 關閉載入畫面
+        launch_window.close()
         ##
 
 

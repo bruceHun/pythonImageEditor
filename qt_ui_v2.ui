@@ -36,6 +36,7 @@
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
+selection-background-color: rgb(26, 10, 249);
 background-color: rgb(22, 22, 22);</string>
         </property>
        </widget>
@@ -439,7 +440,7 @@ background-color: rgb(90, 90, 90);</string>
      <x>0</x>
      <y>0</y>
      <width>924</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
