@@ -36,6 +36,7 @@ class Ui_LaunchWindow(object):
 
         self.retranslateUi(LaunchWindow)
         QtCore.QMetaObject.connectSlotsByName(LaunchWindow)
+        print('Launching window set')
 
     def retranslateUi(self, LaunchWindow):
         _translate = QtCore.QCoreApplication.translate
