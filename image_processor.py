@@ -77,7 +77,7 @@ class ImageProcessor:
     label_color: QColor = False
     mask: QBitmap = None
     colors = Colors()
-    actions: int = 0
+    unsaved_actions: int = 0
     # 緩衝區相關
     pix_buffer = []
     buffer_idx: int = -1
@@ -150,8 +150,7 @@ class ImageProcessor:
     # 結束繪圖
     def end_paint(self, e):
         self.painting = False
-        # self.update_mask()
-        self.actions += 1
+        self.unsaved_actions += 1
         self.painter.end()
         self.update_buffer()
 
@@ -185,6 +184,25 @@ class ImageProcessor:
         self.img_scale = image.width() / self.pixmap_img.width()
         self.brush_cursor.setScale(self.img_scale)
 
+    def scale_to_fit(self, e):
+        if self.pixmap_img is None or self.display_img is None:
+            return
+        img = self.pixmap_img.scaled(
+            self.ui.viewport.width(),
+            self.ui.viewport.height(),
+            QtCore.Qt.KeepAspectRatio
+        )
+        self.display_img.setPixmap(img)
+        mask = self.pixmap_mask.scaled(
+            self.ui.viewport.width(),
+            self.ui.viewport.height(),
+            QtCore.Qt.KeepAspectRatio
+        )
+        self.display_mask.setPixmap(mask)
+        self.img_scale = img.width() / self.pixmap_img.width()
+        self.brush_cursor.setScale(self.img_scale)
+        self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
+
     # 切換圖片
     def change_image(self, _index: int):
         if self.save_mask() == 3:
@@ -192,10 +210,6 @@ class ImageProcessor:
 
         self.ui.prev_btn.setDisabled(True)
         self.ui.next_btn.setDisabled(True)
-
-        # if _index == self.index:
-        #     return
-        # else:
         self.index = _index
         self.ui.file_list_widget.setCurrentRow(_index)
 
@@ -211,7 +225,7 @@ class ImageProcessor:
             self.display_img = self.scene.addPixmap(img)
         else:
             self.display_img.setPixmap(img)
-            # self.change_brush_size(True)
+
         if self.brush_cursor is not None:
             self.brush_cursor.setScale(self.img_scale)
 
@@ -245,12 +259,12 @@ class ImageProcessor:
         self.pix_buffer.clear()
         self.buffer_idx = 0
         self.pix_buffer.append(self.pixmap_mask.copy())
-        self.actions = 0
+        self.unsaved_actions = 0
         # print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 復原動作
     def undo_changes(self):
-        self.actions -= 1
+        self.unsaved_actions -= 1
         self.buffer_idx = max(self.buffer_idx - 1, 0)
         self.ui.statusbar.showMessage(f'Undo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
@@ -258,7 +272,7 @@ class ImageProcessor:
 
     # 重做動作
     def redo_changes(self):
-        self.actions += 1
+        self.unsaved_actions += 1
         self.buffer_idx = min(self.buffer_idx + 1, len(self.pix_buffer) - 1)
         self.ui.statusbar.showMessage(f'Redo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
@@ -336,7 +350,7 @@ class ImageProcessor:
             self.config.write(file)
 
     def save_mask(self):
-        if self.actions <= 0:
+        if self.unsaved_actions <= 0:
             return 0
         sig = []
         save_dialog = QDialog()
