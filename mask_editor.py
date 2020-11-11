@@ -260,6 +260,8 @@ class Ui_MainWindow(object):
         self.graphicsView.mouseReleaseEvent = self.IP.end_paint
         # 鍵盤事件
         MainWindow.keyPressEvent = self.IP.key_event
+        # 滾輪事件
+        self.graphicsView.wheelEvent = self.IP.mouse_wheel_event
         # 離開程式事件
         MainWindow.closeEvent = self.IP.on_exit
         # 調整視窗大小事件
@@ -288,16 +290,16 @@ class Ui_MainWindow(object):
         lui.progressBar.setValue(20)
         lui.label_2.setText('Linking functions...')
         # 連結 UI 功能
-        self.FuncBtn1.clicked.connect(lambda: self.listWidget.setCurrentRow(max(self.IP.index - 1, 0)))
+        self.FuncBtn1.clicked.connect(lambda: self.IP.change_image(max(self.IP.index - 1, 0)))
         self.FuncBtn2.clicked.connect(
-            lambda: self.listWidget.setCurrentRow(min(self.IP.index + 1, len(self.IP.image_list) - 1)))
+            lambda: self.IP.change_image(min(self.IP.index + 1, len(self.IP.image_list) - 1)))
         self.FuncBtn3.clicked.connect(self.IP.undo_changes)
         self.FuncBtn4.clicked.connect(self.IP.redo_changes)
         self.FuncBtn5.clicked.connect(lambda: self.IP.scale_display(self.IP.zoom_scale))
         self.FuncBtn6.clicked.connect(lambda: self.IP.scale_display(-self.IP.zoom_scale))
         self.FuncBtn7.clicked.connect(self.IP.save_mask)
         self.FuncBtn8.clicked.connect(self.IP.delete_mask)
-        self.listWidget.itemSelectionChanged.connect(lambda: self.IP.change_image(self.listWidget.currentRow()))
+        self.listWidget.itemClicked.connect(lambda: self.IP.change_image(self.listWidget.currentRow()))
         self.BrushSizeSlider.valueChanged.connect(lambda:
                                                   self.BrushSizeSpinBox.setValue(
                                                       int((self.BrushSizeSlider.value() + 1) * 5))
