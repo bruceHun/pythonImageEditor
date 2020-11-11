@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import configparser
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget, QStatusBar, QListWidget, \
     QSlider, QFileDialog, QDialog, QPushButton, QDoubleSpinBox, QSpinBox
-from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence
+from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent
 from PyQt5 import QtCore
 from savedialog import Ui_SaveDialog
 from deletedialog import Ui_DeleteDialog
@@ -61,25 +61,19 @@ class ImageProcessor:
     display_img: QGraphicsPixmapItem = None
     display_mask: QGraphicsPixmapItem = None
     scene: QGraphicsScene = None
-    zoom_scale = 100
+    zoom_scale = 0.06
     # 檔案相關
     image_list = []
     mask_list = []
     image_dir = './'
     index = -1
     # 繪圖相關
-    img_scale = 1.0
-    viewport_scale = 1.0
     brush_size = 300
-    brush_pos: QtCore.QPoint = QtCore.QPoint(0, 0)
     MAX_BRUSH_SIZE = 500
-    MAX_WIDTH = 2160
-    MIN_WIDTH = 340
     brush_cursor: QGraphicsPixmapItem = None
     painter: QPainter = None
     painting: bool = False
     erase_mode: bool = True
-    label_mode: bool = False
     label_color: QColor = False
     mask: QBitmap = None
     colors = Colors()
@@ -126,12 +120,15 @@ class ImageProcessor:
                 self.image_list.append(file[: len(file) - 9] + '.JPG')
                 self.mask_list.append(file)
 
-    def key_event(self, e):
+    def key_event(self, e: QKeyEvent):
         key = e.key()
         if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_BracketRight:
             self.scale_display(self.zoom_scale)
         if key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_BracketLeft:
             self.scale_display(-self.zoom_scale)
+        if key == QtCore.Qt.Key_Space:
+            self.scale_to_fit(e)
+
         # if key == QtCore.Qt.Key_Left:
         #     self.change_image(max(self.index - 1, 0))
         # if key == QtCore.Qt.Key_Right:
@@ -154,14 +151,13 @@ class ImageProcessor:
         delta: QtCore.QPoint = e.pixelDelta()
         if delta is None:
             delta = e.angleDelta()
-        self.ui.statusbar.showMessage(f'delta: ({delta.x()},{delta.y()})')
         modifiers = int(e.modifiers())
 
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
 
             if keyname == "Ctrl+":
-                self.scale_display(delta.y())
+                self.scale_display(delta.y() * 0.01)
             if keyname == "Alt+":
                 value = self.ui.brush_size_slide.value() + delta.y()
                 self.ui.brush_size_slide.setValue(value)
@@ -172,9 +168,15 @@ class ImageProcessor:
         else:
             value = self.ui.viewport.verticalScrollBar().value() + delta.y()
             self.ui.viewport.verticalScrollBar().setValue(value)
+        # Update cursor position
+        t = self.ui.viewport.viewportTransform()
+        r = int(self.brush_size / 2)
+        curr_x = int((e.x() - t.m31()) / t.m11()) - r
+        curr_y = int((e.y() - t.m32()) / t.m11()) - r
+        self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
 
     # 開始繪圖
-    def start_paint(self, e):
+    def start_paint(self, e: QMouseEvent):
         self.painting = True
         self.painter = QPainter(self.pixmap_mask)
         self.painter.setCompositionMode(QPainter.CompositionMode_Plus)
@@ -183,13 +185,13 @@ class ImageProcessor:
         self.painter.setPen(p)
         self.painter.setBrush(QBrush(self.label_color))
         t = self.ui.viewport.viewportTransform()
-        r = self.brush_size
-        curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
-        curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
+        r = int(self.brush_size / 2)
+        curr_x = int((e.x() - t.m31()) / t.m11()) - r
+        curr_y = int((e.y() - t.m32()) / t.m11()) - r
         self.painter.setCompositionMode(
             QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
         )
-        self.painter.drawEllipse(curr_x, curr_y, r, r)
+        self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
         self.ui.root.update()
         self.update_mask()
 
@@ -201,56 +203,38 @@ class ImageProcessor:
         self.update_buffer()
 
     # 滑鼠游標在繪圖區移動
-    def mouse_movement(self, e):
-        self.brush_pos = QtCore.QPoint(e.x(), e.y())
+    def mouse_movement(self, e: QMouseEvent):
         t = self.ui.viewport.viewportTransform()
-        offset = int((self.brush_size * self.img_scale) / 2)
+        r = int(self.brush_size / 2)
+        curr_x = int((e.x() - t.m31())/t.m11()) - r
+        curr_y = int((e.y() - t.m32()) / t.m11()) - r
         if self.painting:
-            r = self.brush_size
-            curr_x = int((e.x() - t.m31()) / self.img_scale) - int(r / 2)
-            curr_y = int((e.y() - t.m32()) / self.img_scale) - int(r / 2)
             self.painter.setCompositionMode(
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
             )
-            self.painter.drawEllipse(curr_x, curr_y, r, r)
+            self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
             self.ui.root.update()
             self.update_mask()
 
-        self.ui.statusbar.showMessage(f'x: {e.x()}, y: {e.y()}')
-        self.brush_cursor.setPos(QtCore.QPoint(int(e.x() - offset - t.m31()), int(e.y() - offset - t.m32())))
+        self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
 
     # 調整顯示大小
-    def scale_display(self, value: int):
-        image = self.display_img.pixmap()
-        h, w = image.height(), image.width()
-        if (w + value) > self.MAX_WIDTH or (w + value) < self.MIN_WIDTH:
+    def scale_display(self, value: float):
+        # Noise removal
+        if abs(value) < 0.01:
             return
-        image = self.pixmap_img.scaled(w + value, h + value, QtCore.Qt.KeepAspectRatio)
-        self.display_img.setPixmap(image)
-        image = self.pixmap_mask.scaled(w + value, h + value, QtCore.Qt.KeepAspectRatio)
-        self.display_mask.setPixmap(image)
-        self.scene.setSceneRect(QtCore.QRectF(0, 0, image.width(), image.height()))
-        self.img_scale = image.width() / self.pixmap_img.width()
-        self.brush_cursor.setScale(self.img_scale)
 
+        # self.ui.viewport.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        new_scale = 1 + max(min(value, self.zoom_scale), -self.zoom_scale)
+        tgt_scale = self.ui.viewport.viewportTransform().m11() * new_scale
+        if tgt_scale > 2 or tgt_scale < 0.1:
+            new_scale = 1
+        self.ui.viewport.scale(new_scale, new_scale)
+
+    # 調整 viewport 符合圖片大小
     def scale_to_fit(self, e):
-        if self.pixmap_img is None or self.display_img is None:
-            return
-        img = self.pixmap_img.scaled(
-            self.ui.viewport.width(),
-            self.ui.viewport.height(),
-            QtCore.Qt.KeepAspectRatio
-        )
-        self.display_img.setPixmap(img)
-        mask = self.pixmap_mask.scaled(
-            self.ui.viewport.width(),
-            self.ui.viewport.height(),
-            QtCore.Qt.KeepAspectRatio
-        )
-        self.display_mask.setPixmap(mask)
-        self.img_scale = img.width() / self.pixmap_img.width()
-        self.brush_cursor.setScale(self.img_scale)
-        self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
+        if self.display_img is not None:
+            self.ui.viewport.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
 
     # 切換圖片
     def change_image(self, _index: int):
@@ -263,20 +247,11 @@ class ImageProcessor:
         self.ui.file_list_widget.setCurrentRow(_index)
 
         self.pixmap_img = QPixmap(f'{self.image_dir}/{self.image_list[_index]}')
-        img = self.pixmap_img.scaled(
-            self.ui.viewport.width(),
-            self.ui.viewport.height(),
-            QtCore.Qt.KeepAspectRatio
-        )
-        self.img_scale = img.width() / self.pixmap_img.width()
 
         if self.display_img is None:
-            self.display_img = self.scene.addPixmap(img)
+            self.display_img = self.scene.addPixmap(self.pixmap_img)
         else:
-            self.display_img.setPixmap(img)
-
-        if self.brush_cursor is not None:
-            self.brush_cursor.setScale(self.img_scale)
+            self.display_img.setPixmap(self.pixmap_img)
 
         blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
         blank.fill(self.colors.PINK)
@@ -284,9 +259,10 @@ class ImageProcessor:
 
         self.mask = QBitmap(f'{self.image_dir}/{self.mask_list[_index]}')
         self.pixmap_mask.setMask(self.mask)
-        self.scene.setSceneRect(QtCore.QRectF(0, 0, img.width(), img.height()))
+        self.scene.setSceneRect(QtCore.QRectF(0, 0, self.pixmap_img.width(), self.pixmap_img.height()))
         self.renew_buffer()
         self.update_mask()
+        self.ui.viewport.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
         self.ui.prev_btn.setDisabled(False)
         self.ui.next_btn.setDisabled(False)
 
@@ -334,6 +310,7 @@ class ImageProcessor:
         self.brush_size = value
         self.gen_brush()
 
+    # 改變筆刷顏色
     def change_brush_color(self, index: int):
         if index == 0:
             self.label_color = self.colors.RED
@@ -346,19 +323,10 @@ class ImageProcessor:
 
     # 更新顯示遮罩
     def update_mask(self):
-
         if self.display_mask is None:
-            mask = self.pixmap_mask.scaled(
-                self.ui.viewport.width(),
-                self.ui.viewport.height(),
-                QtCore.Qt.KeepAspectRatio
-            )
-            self.display_mask = self.scene.addPixmap(mask)
+            self.display_mask = self.scene.addPixmap(self.pixmap_mask)
         else:
-            mask = self.display_img.pixmap()
-            h, w = mask.height(), mask.width()
-            mask = self.pixmap_mask.scaled(w, h, QtCore.Qt.KeepAspectRatio)
-            self.display_mask.setPixmap(mask)
+            self.display_mask.setPixmap(self.pixmap_mask)
 
     # 產生筆刷
     def gen_brush(self):
@@ -370,10 +338,6 @@ class ImageProcessor:
             pen,
             QBrush(self.colors.YELLOW)
         )
-        self.brush_cursor.setScale(self.img_scale)
-        t = self.ui.viewport.transform()
-        offset = int((self.brush_size * self.img_scale) / 2)
-        self.brush_cursor.setPos(QtCore.QPoint(int(self.brush_pos.x() - offset - t.m31()), int(self.brush_pos.y() - offset - t.m32())))
 
     # 擦去模式開關
     def erase_mode_flipflop(self):
@@ -400,6 +364,7 @@ class ImageProcessor:
         with open('settings.ini', 'w') as file:
             self.config.write(file)
 
+    # 儲存遮罩圖片
     def save_mask(self):
         if self.unsaved_actions <= 0:
             return 0
@@ -420,6 +385,7 @@ class ImageProcessor:
         if sig[0] == 2:
             return 2
 
+    # 刪除遮罩圖片
     def delete_mask(self):
         sig = []
         delete_dialog = QDialog()
