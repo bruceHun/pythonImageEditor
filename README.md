@@ -5,10 +5,13 @@
 #### **`settings.ini`**
 ```ini
 [GeneralSettings]
-imagedir = ./
+ImageDir = ./
+ZoomScale = 0.06
+ZoomMaxScale = 2.0
+ZoomMinScale = 0.1
 
 [WorkingState]
-workingimg = 0
-brushsize = 300
-erasemode = 1
+Workingimg = 2
+Brushsize = 300
+Erasemode = 1
 ```

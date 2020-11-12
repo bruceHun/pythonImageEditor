@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 import configparser
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget, QStatusBar, QListWidget, \
-    QSlider, QFileDialog, QDialog, QPushButton, QDoubleSpinBox, QSpinBox
+    QSlider, QFileDialog, QDialog, QPushButton, QSpinBox
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent
 from PyQt5 import QtCore
 from savedialog import Ui_SaveDialog
@@ -12,11 +12,11 @@ from deletedialog import Ui_DeleteDialog
 @dataclass
 class Colors:
     BLANK = QColor(0, 0, 0, 0)
-    RED = QColor(255, 0, 0, 128)
-    GREEN = QColor(0, 255, 0, 128)
-    BLUE = QColor(0, 0, 255, 128)
-    PINK = QColor(249, 39, 253, 128)
-    YELLOW = QColor(255, 255, 0, 128)
+    RED = QColor(255, 0, 0, 255)
+    GREEN = QColor(0, 255, 0, 255)
+    BLUE = QColor(0, 0, 255, 255)
+    PINK = QColor(249, 39, 253, 255)
+    YELLOW = QColor(255, 255, 0, 255)
     WHITE = QColor(255, 255, 255, 255)
 
 
@@ -62,6 +62,8 @@ class ImageProcessor:
     display_mask: QGraphicsPixmapItem = None
     scene: QGraphicsScene = None
     zoom_scale = 0.06
+    zoom_max = 2
+    zoom_min = 0.1
     # 檔案相關
     image_list = []
     mask_list = []
@@ -94,24 +96,31 @@ class ImageProcessor:
             settings = open("settings.ini", "r")
             settings.close()
             self.config = configparser.ConfigParser()
+            self.config.optionxform = str
             self.config.read("settings.ini")
         except FileNotFoundError:
             self.getfile()
             self.config = configparser.ConfigParser()
+            self.config.optionxform = str
 
-            self.config["GeneralSettings"] = {'imagedir': self.image_dir,  # 圖片資料夾
-                                              }
-            self.config["WorkingState"] = {'workingimg': '0',
-                                           'brushsize': '300',
-                                           'erasemode': '1'
+            self.config["GeneralSettings"] = {'ImageDir': self.image_dir,  # 圖片資料夾
+                                              'ZoomScale': '0.06',
+                                              'ZoomMaxScale': '2',
+                                              'ZoomMinScale': '0.1'}
+            self.config["WorkingState"] = {'WorkingImg': '0',
+                                           'BrushSize': '300',
+                                           'Erasemode': '1'
                                            }
             with open('settings.ini', 'w') as file:
                 self.config.write(file)
 
-        self.image_dir = self.config.get('GeneralSettings', 'imagedir')
-        self.index = int(self.config.get('WorkingState', 'workingimg'))
-        self.brush_size = int(self.config.get('WorkingState', 'brushsize'))
-        self.erase_mode = bool(self.config.get('WorkingState', 'erasemode'))
+        self.image_dir = self.config.get('GeneralSettings', 'ImageDir')
+        self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
+        self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
+        self.zoom_min = min(max(float(self.config.get('GeneralSettings', 'ZoomMinScale')), 0.01), 1)
+        self.index = int(self.config.get('WorkingState', 'WorkingImg'))
+        self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
+        self.erase_mode = bool(self.config.get('WorkingState', 'Erasemode'))
         self.label_color = self.colors.PINK
 
         # 列出圖片檔名
@@ -128,6 +137,8 @@ class ImageProcessor:
             self.scale_display(-self.zoom_scale)
         if key == QtCore.Qt.Key_Space:
             self.scale_to_fit(e)
+        if key == QtCore.Qt.Key_L:
+            self.save_lable_image()
 
         # if key == QtCore.Qt.Key_Left:
         #     self.change_image(max(self.index - 1, 0))
@@ -227,7 +238,7 @@ class ImageProcessor:
         # self.ui.viewport.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         new_scale = 1 + max(min(value, self.zoom_scale), -self.zoom_scale)
         tgt_scale = self.ui.viewport.viewportTransform().m11() * new_scale
-        if tgt_scale > 2 or tgt_scale < 0.1:
+        if tgt_scale > self.zoom_max or tgt_scale < self.zoom_min:
             new_scale = 1
         self.ui.viewport.scale(new_scale, new_scale)
 
@@ -268,15 +279,16 @@ class ImageProcessor:
 
     # 更新 Buffer
     def update_buffer(self):
+        # Not at the last element of the buffer
         if self.buffer_idx < (len(self.pix_buffer) - 1):
             del self.pix_buffer[self.buffer_idx + 1:]
-            # print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+            print(f'After clean Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
         self.pix_buffer.append(self.pixmap_mask.copy())
         if len(self.pix_buffer) > self.buffer_size:
             self.pix_buffer.pop(0)
         else:
             self.buffer_idx += 1
-        # print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 清空 Buffer
     def renew_buffer(self):
@@ -284,21 +296,29 @@ class ImageProcessor:
         self.buffer_idx = 0
         self.pix_buffer.append(self.pixmap_mask.copy())
         self.unsaved_actions = 0
-        # print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 復原動作
     def undo_changes(self):
+        new_idx = max(self.buffer_idx - 1, 0)
+        if self.buffer_idx == new_idx:
+            return
+        else:
+            self.buffer_idx = new_idx
         self.unsaved_actions -= 1
-        self.buffer_idx = max(self.buffer_idx - 1, 0)
-        self.ui.statusbar.showMessage(f'Undo to Buffer Index: {self.buffer_idx}')
+        print(f'Undo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
         self.update_mask()
 
     # 重做動作
     def redo_changes(self):
+        new_idx = min(self.buffer_idx + 1, len(self.pix_buffer) - 1)
+        if self.buffer_idx == new_idx:
+            return
+        else:
+            self.buffer_idx = new_idx
         self.unsaved_actions += 1
-        self.buffer_idx = min(self.buffer_idx + 1, len(self.pix_buffer) - 1)
-        self.ui.statusbar.showMessage(f'Redo to Buffer Index: {self.buffer_idx}')
+        print(f'Redo to Buffer Index: {self.buffer_idx}')
         self.pixmap_mask = self.pix_buffer[self.buffer_idx]
         self.update_mask()
 
@@ -325,6 +345,7 @@ class ImageProcessor:
     def update_mask(self):
         if self.display_mask is None:
             self.display_mask = self.scene.addPixmap(self.pixmap_mask)
+            self.display_mask.setOpacity(0.5)
         else:
             self.display_mask.setPixmap(self.pixmap_mask)
 
@@ -338,6 +359,7 @@ class ImageProcessor:
             pen,
             QBrush(self.colors.YELLOW)
         )
+        self.brush_cursor.setOpacity(0.5)
 
     # 擦去模式開關
     def erase_mode_flipflop(self):
@@ -355,18 +377,40 @@ class ImageProcessor:
         if len(self.pix_buffer) > 1:
             self.save_mask()
 
-        self.config["GeneralSettings"] = {'imagedir': self.image_dir,  # 圖片資料夾
-                                          }
-        self.config["WorkingState"] = {'workingimg': str(self.index),
-                                       'brushsize': str(self.brush_size),
-                                       'erasemode': str(int(self.erase_mode))
+        self.config["GeneralSettings"] = {'ImageDir': self.image_dir,  # 圖片資料夾
+                                          'ZoomScale': str(self.zoom_scale),
+                                          'ZoomMaxScale': str(self.zoom_max),
+                                          'ZoomMinScale': str(self.zoom_min)}
+        self.config["WorkingState"] = {'WorkingImg': str(self.index),
+                                       'BrushSize': str(self.brush_size),
+                                       'Erasemode': str(int(self.erase_mode))
                                        }
         with open('settings.ini', 'w') as file:
             self.config.write(file)
 
+    # 儲存 label 圖片
+    def save_lable_image(self):
+        sig = []
+        save_dialog = QDialog()
+        dui = Ui_SaveDialog(sig)
+        dui.setupUi(save_dialog)
+        save_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        save_dialog.exec()
+        if sig[0] == 3:
+            return 3
+        if sig[0] == 1:
+            path = f'{self.image_dir}/{self.image_list[self.index]}'
+            path = path[: len(path) - 4] + '.png'
+            image = self.pixmap_mask.toImage().convertToFormat(QImage.Format_RGB32)
+            image.save(path)
+            self.ui.statusbar.showMessage(f'lLabel image saved ({path})')
+            return 1
+        if sig[0] == 2:
+            return 2
+
     # 儲存遮罩圖片
     def save_mask(self):
-        if self.unsaved_actions <= 0:
+        if self.unsaved_actions == 0:
             return 0
         sig = []
         save_dialog = QDialog()
