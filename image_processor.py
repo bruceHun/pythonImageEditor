@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import configparser
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QWidget, QStatusBar, QListWidget, \
     QSlider, QFileDialog, QDialog, QPushButton, QSpinBox
-from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent
+from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
+    QWheelEvent
 from PyQt5 import QtCore
 from savedialog import Ui_SaveDialog
 from deletedialog import Ui_DeleteDialog
@@ -89,7 +90,16 @@ class ImageProcessor:
     # 設定檔解析器
     config: configparser = None
 
-    def init(self):
+    def init(self, is_running: bool = False):
+        if is_running:
+            directory = self.get_directory()
+            if directory == "":
+                return
+            else:
+                self.image_dir = directory
+                self.image_list.clear()
+                self.mask_list.clear()
+                self.ui.file_list_widget.clear()
 
         # 開啟設定檔
         try:
@@ -99,7 +109,10 @@ class ImageProcessor:
             self.config.optionxform = str
             self.config.read("settings.ini")
         except FileNotFoundError:
-            self.getfile()
+            if not is_running:
+                self.image_dir = self.get_directory()
+            if self.image_dir == "":
+                self.image_dir = "./"
             self.config = configparser.ConfigParser()
             self.config.optionxform = str
 
@@ -114,13 +127,22 @@ class ImageProcessor:
             with open('settings.ini', 'w') as file:
                 self.config.write(file)
 
-        self.image_dir = self.config.get('GeneralSettings', 'ImageDir')
-        self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
-        self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
-        self.zoom_min = min(max(float(self.config.get('GeneralSettings', 'ZoomMinScale')), 0.01), 1)
-        self.index = int(self.config.get('WorkingState', 'WorkingImg'))
-        self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
-        self.erase_mode = bool(self.config.get('WorkingState', 'Erasemode'))
+        # 載入新目錄時套用預設工作階段設定
+        if is_running:
+            self.zoom_scale = 0.06
+            self.zoom_max = 2
+            self.zoom_min = 0.1
+            self.index = 0
+            self.brush_size = 300
+            self.erase_mode = True
+        else:
+            self.image_dir = self.config.get('GeneralSettings', 'ImageDir')
+            self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
+            self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
+            self.zoom_min = min(max(float(self.config.get('GeneralSettings', 'ZoomMinScale')), 0.01), 1)
+            self.index = int(self.config.get('WorkingState', 'WorkingImg'))
+            self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
+            self.erase_mode = bool(self.config.get('WorkingState', 'Erasemode'))
         self.label_color = self.colors.PINK
 
         # 列出圖片檔名
@@ -128,6 +150,10 @@ class ImageProcessor:
             if file.endswith('.TIF') or file.endswith('.tif'):
                 self.image_list.append(file[: len(file) - 9] + '.JPG')
                 self.mask_list.append(file)
+        if is_running:
+            self.ui.file_list_widget.addItems(self.image_list)
+            self.change_image(0)
+
 
     def key_event(self, e: QKeyEvent):
         key = e.key()
@@ -158,15 +184,15 @@ class ImageProcessor:
             if keyname == "Ctrl+S":
                 self.save_mask()
 
-    def mouse_wheel_event(self, e):
+    def mouse_wheel_event(self, e: QWheelEvent):
         delta: QtCore.QPoint = e.pixelDelta()
-        if delta is None:
+        if delta is None or delta.y() == 0:
             delta = e.angleDelta()
         modifiers = int(e.modifiers())
 
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
-
+            print(delta.x(), delta.y())
             if keyname == "Ctrl+":
                 self.scale_display(delta.y() * 0.01)
             if keyname == "Alt+":
@@ -368,9 +394,10 @@ class ImageProcessor:
         self.ui.statusbar.showMessage(msg)
 
     # 選擇圖檔資料夾
-    def getfile(self):
-        self.image_dir = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-        print(self.image_dir)
+    def get_directory(self):
+        filedir = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+        print(f'image dir : "{filedir}"')
+        return filedir
 
     # 離開程式
     def on_exit(self, e):

@@ -99,7 +99,7 @@ background-color: rgb(22, 22, 22);</string>
            <number>5</number>
           </property>
           <property name="maximum">
-           <number>500</number>
+           <number>600</number>
           </property>
          </widget>
         </item>
@@ -446,15 +446,95 @@ background-color: rgb(90, 90, 90);</string>
      <x>0</x>
      <y>0</y>
      <width>958</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 255, 255);
+selection-color: rgb(255, 170, 0);</string>
+   </property>
+   <widget class="QMenu" name="menu_File">
+    <property name="styleSheet">
+     <string notr="true">color: rgb(255, 255, 255);</string>
+    </property>
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="action_Open"/>
+    <addaction name="action_Save_Mask"/>
+    <addaction name="actionSave_Label"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="action_Quit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Edit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <addaction name="action_Undo"/>
+    <addaction name="action_Redo"/>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionI_m_working_on_it"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Edit"/>
+   <addaction name="menu_Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar">
    <property name="styleSheet">
     <string notr="true">color: rgb(254, 204, 9);</string>
    </property>
   </widget>
+  <action name="action_Setting">
+   <property name="text">
+    <string>&amp;Setting</string>
+   </property>
+  </action>
+  <action name="action_Open">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+  </action>
+  <action name="action_Save_Mask">
+   <property name="text">
+    <string>&amp;Save Mask</string>
+   </property>
+  </action>
+  <action name="actionSave_Label">
+   <property name="text">
+    <string>Save Label</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="action_Undo">
+   <property name="text">
+    <string>&amp;Undo</string>
+   </property>
+  </action>
+  <action name="action_Redo">
+   <property name="text">
+    <string>&amp;Redo</string>
+   </property>
+  </action>
+  <action name="actionI_m_working_on_it">
+   <property name="text">
+    <string>I'm working on it!</string>
+   </property>
+  </action>
+  <action name="action_Quit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
