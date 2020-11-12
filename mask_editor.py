@@ -1,6 +1,7 @@
+
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'qt_ui_v2.ui'
+# Form implementation generated from reading ui file 'mainwindow.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
 #
@@ -35,7 +36,8 @@ class Ui_MainWindow(object):
         self.listWidget.setSizePolicy(sizePolicy)
         self.listWidget.setMinimumSize(QtCore.QSize(200, 0))
         self.listWidget.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                      "selection-background-color: rgb(26, 10, 249);\n"
+                                      "alternate-background-color: rgb(255, 170, 0);\n"
+                                      "selection-color: rgb(255, 170, 0);\n"
                                       "background-color: rgb(22, 22, 22);")
         self.listWidget.setObjectName("listWidget")
         self.SideBar.addWidget(self.listWidget)
@@ -162,54 +164,6 @@ class Ui_MainWindow(object):
                                     "background-color: rgb(90, 90, 90);")
         self.FuncBtn6.setObjectName("FuncBtn6")
         self.MainScreen.addWidget(self.FuncBtn6)
-        self.FuncBtn3 = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.FuncBtn3.sizePolicy().hasHeightForWidth())
-        self.FuncBtn3.setSizePolicy(sizePolicy)
-        self.FuncBtn3.setMinimumSize(QtCore.QSize(50, 0))
-        self.FuncBtn3.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.FuncBtn3.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "background-color: rgb(90, 90, 90);")
-        self.FuncBtn3.setObjectName("FuncBtn3")
-        self.MainScreen.addWidget(self.FuncBtn3)
-        self.FuncBtn4 = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.FuncBtn4.sizePolicy().hasHeightForWidth())
-        self.FuncBtn4.setSizePolicy(sizePolicy)
-        self.FuncBtn4.setMinimumSize(QtCore.QSize(50, 0))
-        self.FuncBtn4.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.FuncBtn4.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "background-color: rgb(90, 90, 90);")
-        self.FuncBtn4.setObjectName("FuncBtn4")
-        self.MainScreen.addWidget(self.FuncBtn4)
-        self.FuncBtn7 = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.FuncBtn7.sizePolicy().hasHeightForWidth())
-        self.FuncBtn7.setSizePolicy(sizePolicy)
-        self.FuncBtn7.setMinimumSize(QtCore.QSize(50, 0))
-        self.FuncBtn7.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.FuncBtn7.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "background-color: rgb(90, 90, 90);")
-        self.FuncBtn7.setObjectName("FuncBtn7")
-        self.MainScreen.addWidget(self.FuncBtn7)
-        self.FuncBtn8 = QtWidgets.QPushButton(self.centralwidget)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.FuncBtn8.sizePolicy().hasHeightForWidth())
-        self.FuncBtn8.setSizePolicy(sizePolicy)
-        self.FuncBtn8.setMinimumSize(QtCore.QSize(50, 0))
-        self.FuncBtn8.setMaximumSize(QtCore.QSize(100, 16777215))
-        self.FuncBtn8.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "background-color: rgb(90, 90, 90);")
-        self.FuncBtn8.setObjectName("FuncBtn8")
-        self.MainScreen.addWidget(self.FuncBtn8)
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
         self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
@@ -224,7 +178,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 958, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 958, 25))
         self.menubar.setStyleSheet("color: rgb(255, 255, 255);\n"
                                    "selection-color: rgb(255, 170, 0);")
         self.menubar.setObjectName("menubar")
@@ -288,20 +242,21 @@ class Ui_MainWindow(object):
         self.FuncBtn2.setText(_translate("MainWindow", ">>"))
         self.FuncBtn5.setText(_translate("MainWindow", "+"))
         self.FuncBtn6.setText(_translate("MainWindow", "-"))
-        self.FuncBtn3.setText(_translate("MainWindow", "Undo"))
-        self.FuncBtn4.setText(_translate("MainWindow", "Redo"))
-        self.FuncBtn7.setText(_translate("MainWindow", "Save"))
-        self.FuncBtn8.setText(_translate("MainWindow", "Delete"))
         self.menu_File.setTitle(_translate("MainWindow", "&File"))
         self.menu_Edit.setTitle(_translate("MainWindow", "&Edit"))
         self.menu_Help.setTitle(_translate("MainWindow", "&Help"))
         self.action_Setting.setText(_translate("MainWindow", "&Setting"))
         self.action_Open.setText(_translate("MainWindow", "&Open"))
+        self.action_Open.setShortcut(_translate("MainWindow", "Ctrl+O"))
         self.action_Save_Mask.setText(_translate("MainWindow", "&Save Mask"))
+        self.action_Save_Mask.setShortcut(_translate("MainWindow", "Ctrl+S"))
         self.actionSave_Label.setText(_translate("MainWindow", "Save Label"))
+        self.actionSave_Label.setShortcut(_translate("MainWindow", "Ctrl+L"))
         self.actionSettings.setText(_translate("MainWindow", "Settings"))
         self.action_Undo.setText(_translate("MainWindow", "&Undo"))
+        self.action_Undo.setShortcut(_translate("MainWindow", "Ctrl+Z"))
         self.action_Redo.setText(_translate("MainWindow", "&Redo"))
+        self.action_Redo.setShortcut(_translate("MainWindow", "Ctrl+Shift+Z"))
         self.actionI_m_working_on_it.setText(_translate("MainWindow", "I\'m working on it!"))
         self.action_Quit.setText(_translate("MainWindow", "&Quit"))
 
@@ -351,12 +306,8 @@ class Ui_MainWindow(object):
         self.FuncBtn1.clicked.connect(lambda: self.IP.change_image(max(self.IP.index - 1, 0)))
         self.FuncBtn2.clicked.connect(
             lambda: self.IP.change_image(min(self.IP.index + 1, len(self.IP.image_list) - 1)))
-        self.FuncBtn3.clicked.connect(self.IP.undo_changes)
-        self.FuncBtn4.clicked.connect(self.IP.redo_changes)
         self.FuncBtn5.clicked.connect(lambda: self.IP.scale_display(self.IP.zoom_scale))
         self.FuncBtn6.clicked.connect(lambda: self.IP.scale_display(-self.IP.zoom_scale))
-        self.FuncBtn7.clicked.connect(self.IP.save_mask)
-        self.FuncBtn8.clicked.connect(self.IP.delete_mask)
         self.listWidget.itemClicked.connect(lambda: self.IP.change_image(self.listWidget.currentRow()))
         self.BrushSizeSlider.valueChanged.connect(lambda:
                                                   self.BrushSizeSpinBox.setValue(
@@ -391,6 +342,7 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     # 顯示載入畫面
@@ -403,4 +355,3 @@ if __name__ == "__main__":
     MainWindow.show()
     ui.init(lui)
     sys.exit(app.exec_())
-

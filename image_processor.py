@@ -81,6 +81,8 @@ class ImageProcessor:
     mask: QBitmap = None
     colors = Colors()
     unsaved_actions: int = 0
+    # 操作設定相關
+    scroll_speed = 5
     # 緩衝區相關
     pix_buffer = []
     buffer_idx: int = -1
@@ -154,7 +156,6 @@ class ImageProcessor:
             self.ui.file_list_widget.addItems(self.image_list)
             self.change_image(0)
 
-
     def key_event(self, e: QKeyEvent):
         key = e.key()
         if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_BracketRight:
@@ -163,46 +164,32 @@ class ImageProcessor:
             self.scale_display(-self.zoom_scale)
         if key == QtCore.Qt.Key_Space:
             self.scale_to_fit(e)
-        if key == QtCore.Qt.Key_L:
-            self.save_lable_image()
 
         # if key == QtCore.Qt.Key_Left:
         #     self.change_image(max(self.index - 1, 0))
         # if key == QtCore.Qt.Key_Right:
         #     self.change_image(min(self.index + 1, len(self.image_list) - 1))
 
-        modifiers = int(e.modifiers())
-        if (modifiers and modifiers & MOD_MASK == modifiers and
-                key > 0 and key != QtCore.Qt.Key_Shift and key != QtCore.Qt.Key_Alt and
-                key != QtCore.Qt.Key_Control and key != QtCore.Qt.Key_Meta):
-            keyname = QKeySequence(modifiers + key).toString()
-            # self.ui.statusbar.showMessage(keyname)
-            if keyname == "Ctrl+Z":
-                self.undo_changes()
-            if keyname == "Ctrl+Shift+Z":
-                self.redo_changes()
-            if keyname == "Ctrl+S":
-                self.save_mask()
-
     def mouse_wheel_event(self, e: QWheelEvent):
         delta: QtCore.QPoint = e.pixelDelta()
         if delta is None or delta.y() == 0:
-            delta = e.angleDelta()
+            delta = e.angleDelta() / 10
         modifiers = int(e.modifiers())
 
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
-            print(delta.x(), delta.y())
             if keyname == "Ctrl+":
                 self.scale_display(delta.y() * 0.01)
-            if keyname == "Alt+":
+            if keyname == "Ctrl+Shift+":
                 value = self.ui.brush_size_slide.value() + delta.y()
                 self.ui.brush_size_slide.setValue(value)
                 self.change_brush_size(value)
             if keyname == "Shift+":
+                delta *= self.scroll_speed
                 value = self.ui.viewport.horizontalScrollBar().value() + delta.y()
                 self.ui.viewport.horizontalScrollBar().setValue(value)
         else:
+            delta *= self.scroll_speed
             value = self.ui.viewport.verticalScrollBar().value() + delta.y()
             self.ui.viewport.verticalScrollBar().setValue(value)
         # Update cursor position
@@ -421,6 +408,7 @@ class ImageProcessor:
         save_dialog = QDialog()
         dui = Ui_SaveDialog(sig)
         dui.setupUi(save_dialog)
+        dui.labelMessage.setText("Would you like to save as a label image?")
         save_dialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         save_dialog.exec()
         if sig[0] == 3:
@@ -430,7 +418,7 @@ class ImageProcessor:
             path = path[: len(path) - 4] + '.png'
             image = self.pixmap_mask.toImage().convertToFormat(QImage.Format_RGB32)
             image.save(path)
-            self.ui.statusbar.showMessage(f'lLabel image saved ({path})')
+            self.ui.statusbar.showMessage(f'Label image saved ({path})')
             return 1
         if sig[0] == 2:
             return 2
