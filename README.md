@@ -1,5 +1,5 @@
 ## Generate python file from Qt Designer
-    pyuic5 -x mainwindow.ui -o test.py
+    pyuic5 -x mainwindow.ui -o mainwindow.py
     
 ## Default Setting File
 #### **`settings.ini`**

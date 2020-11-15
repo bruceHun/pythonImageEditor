@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 import configparser
-from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog
+
+from PyQt5.QtCore import QPoint
+from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
-    QWheelEvent
+    QWheelEvent, QPolygon
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferModule
@@ -15,8 +17,15 @@ class Colors:
     RED = QColor(255, 0, 0, 255)
     GREEN = QColor(0, 255, 0, 255)
     BLUE = QColor(0, 0, 255, 255)
-    FUCHSIA = QColor(255, 0, 255, 255)
     YELLOW = QColor(255, 255, 0, 255)
+    FUCHSIA = QColor(255, 0, 255, 255)
+    AQUA = QColor(0, 255, 255, 255)
+    DRED = QColor(128, 0, 0, 255)
+    DGREEN = QColor(0, 128, 0, 255)
+    DBLUE = QColor(0, 0, 128, 255)
+    DYELLOW = QColor(128, 128, 0, 255)
+    DFUCHSIA = QColor(128, 0, 128, 255)
+    DAQUA = QColor(0, 128, 128, 255)
     WHITE = QColor(255, 255, 255, 255)
 
 
@@ -31,6 +40,7 @@ def get_directory():
 
 class ImageProcessor:
     #
+    labeling_mode: bool = True
     pixmap_img: QPixmap = None
     pixmap_mask: QPixmap = None
     pixmap_brush: QPixmap = None
@@ -52,11 +62,12 @@ class ImageProcessor:
     mask: QBitmap = None
     colors = Colors()
     # 操作設定相關
-    scroll_speed = 5
+    scroll_speed = -5
     # 繪圖緩衝區模組
     ab: ImageBufferModule = ImageBufferModule()
     # 上層顯示物件
     ui: Ui_MainWindow = None
+    main_window: QMainWindow = None
     # 設定檔解析器
     config: configparser = None
 
@@ -68,7 +79,6 @@ class ImageProcessor:
             else:
                 self.FM.image_dir = directory
                 self.FM.image_list.clear()
-                self.FM.mask_list.clear()
                 self.ui.listWidget.clear()
 
         # 開啟設定檔
@@ -88,8 +98,9 @@ class ImageProcessor:
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
                                               'ZoomScale': '0.06',
-                                              'ZoomMaxScale': '2',
-                                              'ZoomMinScale': '0.1'}
+                                              'ZoomMaxScale': '5',
+                                              'ZoomMinScale': '0.1',
+                                              'InvertScroll': 'False'}
             self.config["WorkingState"] = {'WorkingImg': '0',
                                            'BrushSize': '300',
                                            'Erasemode': '1'
@@ -100,23 +111,25 @@ class ImageProcessor:
         # 載入新目錄時套用預設工作階段設定
         if is_running:
             self.zoom_scale = 0.06
-            self.zoom_max = 2
+            self.zoom_max = 5
             self.zoom_min = 0.1
             self.FM.index = 0
             self.brush_size = 300
             self.erase_mode = True
+            self.scroll_speed = -5
         else:
             self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
             self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
             self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
             self.zoom_min = min(max(float(self.config.get('GeneralSettings', 'ZoomMinScale')), 0.01), 1)
+            self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
             self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
             self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
             self.erase_mode = bool(self.config.get('WorkingState', 'Erasemode'))
         self.label_color = self.colors.FUCHSIA
 
         # 列出圖片檔名
-        self.FM.get_file_lists()
+        self.FM.get_file_lists(self.labeling_mode)
         if is_running:
             self.ui.listWidget.addItems(self.FM.image_list)
             self.change_image(0)
@@ -135,11 +148,13 @@ class ImageProcessor:
         if delta is None or delta.y() == 0:
             delta = e.angleDelta() / 10
         modifiers = int(e.modifiers())
+        zoomed = False
 
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
             if keyname == "Ctrl+":
                 self.scale_display(delta.y() * 0.01)
+                zoomed = True
             if keyname == "Ctrl+Shift+":
                 value = self.ui.BrushSizeSlider.value() + delta.y()
                 self.ui.BrushSizeSlider.setValue(value)
@@ -158,6 +173,8 @@ class ImageProcessor:
         curr_x = int((e.x() - t.m31()) / t.m11()) - r
         curr_y = int((e.y() - t.m32()) / t.m11()) - r
         self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
+        if zoomed:
+            self.ui.graphicsView.centerOn(self.brush_cursor.pos())
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
@@ -190,14 +207,14 @@ class ImageProcessor:
     def mouse_movement(self, e: QMouseEvent):
         t = self.ui.graphicsView.viewportTransform()
         r = int(self.brush_size / 2)
-        curr_x = int((e.x() - t.m31())/t.m11()) - r
+        curr_x = int((e.x() - t.m31()) / t.m11()) - r
         curr_y = int((e.y() - t.m32()) / t.m11()) - r
         if self.painting:
             self.painter.setCompositionMode(
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
             )
             self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
-            self.ui.centralwidget.update()
+            # self.ui.centralwidget.update()
             self.update_mask()
 
         self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
@@ -208,7 +225,7 @@ class ImageProcessor:
         if abs(value) < 0.01:
             return
 
-        # self.ui.viewport.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        # self.ui.graphicsView.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         new_scale = 1 + max(min(value, self.zoom_scale), -self.zoom_scale)
         tgt_scale = self.ui.graphicsView.viewportTransform().m11() * new_scale
         if tgt_scale > self.zoom_max or tgt_scale < self.zoom_min:
@@ -222,7 +239,9 @@ class ImageProcessor:
 
     # 切換圖片
     def change_image(self, _index: int):
-        if self.save_mask() == 3:
+        if self.labeling_mode and self.save_annotation() == 3:
+            return
+        elif not self.labeling_mode and self.save_mask() == 3:
             return
 
         self.ui.FuncBtn1.setDisabled(True)
@@ -238,17 +257,75 @@ class ImageProcessor:
             self.display_img.setPixmap(self.pixmap_img)
 
         blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
-        blank.fill(self.colors.FUCHSIA)
-        self.pixmap_mask = QPixmap(blank)
 
-        self.mask = QBitmap(f'{self.FM.image_dir}/{self.FM.mask_list[_index]}')
-        self.pixmap_mask.setMask(self.mask)
+        # 利用 label 檔的輪廓資訊繪製遮罩
+        if self.labeling_mode:
+            self.pixmap_mask = QPixmap(blank)
+            #
+            if len(self.FM.annotations) > 0:
+                try:
+                    a = self.FM.annotations[self.FM.image_list[_index]]
+                    self.ui.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
+                    polygons = [r['shape_attributes'] for r in a['regions']]
+                    # Painting prep
+                    self.painter = QPainter(self.pixmap_mask)
+                    self.painter.setCompositionMode(QPainter.CompositionMode_Source)
+                    labelcolors = [
+                        self.colors.RED,
+                        self.colors.GREEN,
+                        self.colors.BLUE,
+                        self.colors.YELLOW,
+                        self.colors.FUCHSIA,
+                        self.colors.AQUA
+                    ]
+                    nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5}
+                    cidx = 0
+                    for r in a['regions']:
+                        area = QPolygon()
+                        p = r['shape_attributes']
+                        for i in range(len(p['all_points_x'])):
+                            area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
+
+                        try:
+                            paint_color = labelcolors[nameref[r['region_attributes']['Color']]]
+                        except KeyError:
+                            paint_color = labelcolors[cidx]
+                            cidx = (cidx + 1) % 6
+
+                        self.painter.setPen(QPen(paint_color))
+                        self.painter.setBrush(QBrush(paint_color))
+                        self.painter.drawPolygon(area)
+
+                    self.painter.end()
+                except KeyError:
+                    self.ui.statusbar.showMessage('No annotation for this image')
+        # 讀取圖檔建立遮罩圖層
+        else:
+            self.mask = QBitmap(f'{self.FM.image_dir}/{self.FM.image_list[_index]}_mask.tif')
+            if not self.mask.isNull():
+                blank.fill(self.colors.FUCHSIA)
+                self.pixmap_mask = QPixmap(blank)
+                self.pixmap_mask.setMask(self.mask)
+                self.ui.statusbar.showMessage('')
+            else:
+                self.ui.statusbar.showMessage(f'No mask file for {self.FM.image_list[_index]}')
+                self.pixmap_mask = QPixmap(blank)
+
         self.scene.setSceneRect(QtCore.QRectF(0, 0, self.pixmap_img.width(), self.pixmap_img.height()))
         self.ab.renew_buffer(self.pixmap_mask)
         self.update_mask()
         self.ui.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
+        self.main_window.setWindowTitle(f'Mask Editor -- {self.FM.image_list[_index]}')
         self.ui.FuncBtn1.setDisabled(False)
         self.ui.FuncBtn2.setDisabled(False)
+
+    # 更新顯示遮罩
+    def update_mask(self):
+        if self.display_mask is None:
+            self.display_mask = self.scene.addPixmap(self.pixmap_mask)
+            self.display_mask.setOpacity(0.5)
+        else:
+            self.display_mask.setPixmap(self.pixmap_mask)
 
     # 復原動作
     def undo_changes(self):
@@ -270,42 +347,60 @@ class ImageProcessor:
 
     # 改變筆刷顏色
     def change_brush_color(self, index: int):
+        if self.erase_mode:
+            self.erase_mode = False
         if index == 0:
             self.label_color = self.colors.RED
-        if index == 1:
+        elif index == 1:
             self.label_color = self.colors.GREEN
-        if index == 2:
+        elif index == 2:
             self.label_color = self.colors.BLUE
-        if index == 3:
+        elif index == 3:
+            self.label_color = self.colors.YELLOW
+        elif index == 4:
             self.label_color = self.colors.FUCHSIA
+        elif index == 5:
+            self.label_color = self.colors.AQUA
+        self.gen_brush()
 
-    # 更新顯示遮罩
-    def update_mask(self):
-        if self.display_mask is None:
-            self.display_mask = self.scene.addPixmap(self.pixmap_mask)
-            self.display_mask.setOpacity(0.5)
-        else:
-            self.display_mask.setPixmap(self.pixmap_mask)
+    # 改變底圖亮度
+    def change_photo_brightness(self):
+        value = self.ui.brightnessSlider.value() / 100
+        self.display_img.setOpacity(value)
+        if value < 0.5:
+            self.display_mask.setOpacity(1 - value)
 
     # 產生筆刷
     def gen_brush(self):
         if self.brush_cursor is not None:
             self.scene.removeItem(self.brush_cursor)
-        pen = QPen(QtCore.Qt.yellow)
+        brush_color = None
+        if self.erase_mode:
+            brush_color = self.colors.WHITE
+        elif self.label_color == self.colors.RED:
+            brush_color = self.colors.DRED
+        elif self.label_color == self.colors.GREEN:
+            brush_color = self.colors.DGREEN
+        elif self.label_color == self.colors.BLUE:
+            brush_color = self.colors.DBLUE
+        elif self.label_color == self.colors.YELLOW:
+            brush_color = self.colors.DYELLOW
+        elif self.label_color == self.colors.FUCHSIA:
+            brush_color = self.colors.DFUCHSIA
+        elif self.label_color == self.colors.AQUA:
+            brush_color = self.colors.DAQUA
+        pen = QPen(brush_color)
         self.brush_cursor = self.scene.addEllipse(
             QtCore.QRectF(0, 0, self.brush_size, self.brush_size),
             pen,
-            QBrush(self.colors.YELLOW)
+            QBrush(brush_color)
         )
         self.brush_cursor.setOpacity(0.5)
 
     # 擦去模式開關
-    def erase_mode_flipflop(self):
-        self.erase_mode = not self.erase_mode
-        msg = "Switch to 'Erase' Mode" if self.erase_mode else "Switch to 'Paint' Mode"
-        self.ui.statusbar.showMessage(msg)
-
-    # 選擇圖檔資料夾
+    def erase_mode_on(self):
+        self.erase_mode = True
+        self.gen_brush()
 
     # 離開程式
     def on_exit(self, e):
@@ -315,7 +410,8 @@ class ImageProcessor:
         self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
                                           'ZoomScale': str(self.zoom_scale),
                                           'ZoomMaxScale': str(self.zoom_max),
-                                          'ZoomMinScale': str(self.zoom_min)}
+                                          'ZoomMinScale': str(self.zoom_min),
+                                          'InvertScroll': 'False' if self.scroll_speed < 0 else 'True'}
         self.config["WorkingState"] = {'WorkingImg': str(self.FM.index),
                                        'BrushSize': str(self.brush_size),
                                        'Erasemode': str(int(self.erase_mode))
@@ -327,11 +423,12 @@ class ImageProcessor:
         if self.ab.unsaved_actions != 0:
             self.FM.save_mask(self.pixmap_mask)
 
+    def save_annotation(self):
+        if self.ab.unsaved_actions != 0:
+            self.FM.save_annotation(self.pixmap_mask)
+
     def save_label_image(self):
         self.FM.save_label_image(self.pixmap_mask)
 
     def delete_mask(self):
         self.FM.delete_mask()
-
-
-
