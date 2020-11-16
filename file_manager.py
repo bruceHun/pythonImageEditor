@@ -41,7 +41,6 @@ def get_contours(pixmap: QPixmap):
         output = inRange(img, lows[i], highs[i])
         ret, thresh = threshold(output, 128, 255, 0)
         # thresh = np.where(img == colorlist[i], 255, 0)
-        print(thresh.shape)
         # 尋找輪廓
         contours, hierarchy = findContours(thresh, RETR_TREE, CHAIN_APPROX_TC89_L1)
         if len(contours) != 0:
@@ -87,7 +86,7 @@ class FileManager:
 
     def get_file_lists(self, _labeling: bool = False):
         for file in os.listdir(self.image_dir):
-            if file.endswith('.JPG') or file.endswith('.jpg'):
+            if file.endswith('.JPG') or file.endswith('.jpg') or file.endswith('.png'):
                 self.image_list.append(file)
             if file.endswith('.json') and _labeling:
                 self.via_fname = f'{self.image_dir}/{file}'
@@ -127,9 +126,15 @@ class FileManager:
             return 3
         if sig[0] == 1:
             fname = f'{self.image_list[self.index]}'
-            fsize = self.annotations[fname]['size']
+            try:
+                fsize = self.annotations[fname]['size']
+            except KeyError:
+                fsize = os.path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
+
             contours, colorids = get_contours(pixmap)
             add_annotation(fname, fsize, contours, colorids, 'vehicle', self.annotations)
+            if self.via_fname == '':
+                self.via_fname = f'{self.image_dir}/label.json'
             with open(self.via_fname, 'w') as json_file:
                 json_file.write(str(json.dumps(self.annotations)))
             return 1

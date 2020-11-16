@@ -173,8 +173,8 @@ class ImageProcessor:
         curr_x = int((e.x() - t.m31()) / t.m11()) - r
         curr_y = int((e.y() - t.m32()) / t.m11()) - r
         self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
-        if zoomed:
-            self.ui.graphicsView.centerOn(self.brush_cursor.pos())
+        # if zoomed:
+        #     self.ui.graphicsView.centerOn(self.brush_cursor.pos())
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
@@ -301,7 +301,9 @@ class ImageProcessor:
                     self.ui.statusbar.showMessage('No annotation for this image')
         # 讀取圖檔建立遮罩圖層
         else:
-            self.mask = QBitmap(f'{self.FM.image_dir}/{self.FM.image_list[_index]}_mask.tif')
+            f_name = self.FM.image_list[_index]
+            f_name = f_name[:len(f_name)-4]
+            self.mask = QBitmap(f'{self.FM.image_dir}/{f_name}_mask.tif')
             if not self.mask.isNull():
                 blank.fill(self.colors.FUCHSIA)
                 self.pixmap_mask = QPixmap(blank)
