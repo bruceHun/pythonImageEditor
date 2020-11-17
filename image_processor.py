@@ -42,10 +42,10 @@ class ImageProcessor:
     #
     labeling_mode: bool = True
     pixmap_img: QPixmap = None
-    pixmap_mask: QPixmap = None
+    pixmap_mask = {}
     pixmap_brush: QPixmap = None
     display_img: QGraphicsPixmapItem = None
-    display_mask: QGraphicsPixmapItem = None
+    display_mask = {}
     scene: QGraphicsScene = None
     zoom_scale = 0.1
     zoom_max = 2
@@ -156,7 +156,6 @@ class ImageProcessor:
             if keyname == "Ctrl+Shift+":
                 value = self.ui.BrushSizeSlider.value() + delta.y()
                 self.ui.BrushSizeSlider.setValue(value)
-                self.change_brush_size(value)
             if keyname == "Shift+":
                 delta *= self.scroll_speed
                 value = self.ui.graphicsView.horizontalScrollBar().value() + delta.y()
@@ -175,7 +174,7 @@ class ImageProcessor:
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
         self.painting = True
-        self.painter = QPainter(self.pixmap_mask)
+        self.painter = QPainter(self.pixmap_mask[self.ui.comboBox.currentText()])
         self.painter.setCompositionMode(QPainter.CompositionMode_Plus)
         p = self.painter.pen()
         p.setColor(self.label_color)
@@ -201,10 +200,12 @@ class ImageProcessor:
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e: QMouseEvent):
-        t = self.ui.graphicsView.viewportTransform()
+        # t = self.ui.graphicsView.viewportTransform()
         r = int(self.brush_size / 2)
-        curr_x = int((e.x() - t.m31()) / t.m11()) - r
-        curr_y = int((e.y() - t.m32()) / t.m11()) - r
+        # curr_x = int((e.x() - t.m31()) / t.m11()) - r
+        # curr_y = int((e.y() - t.m32()) / t.m11()) - r
+        mappos = self.ui.graphicsView.mapToScene(e.pos())
+        curr_x, curr_y = mappos.x() - r, mappos.y() - r
         if self.painting:
             self.painter.setCompositionMode(
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
@@ -255,19 +256,17 @@ class ImageProcessor:
             self.display_img.setPixmap(self.pixmap_img)
 
         blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
-
+        self.pixmap_mask.clear()
         # 利用 label 檔的輪廓資訊繪製遮罩
         if self.labeling_mode:
-            self.pixmap_mask = QPixmap(blank)
+            # self.pixmap_mask = QPixmap(blank)
             #
             if len(self.FM.annotations) > 0:
                 try:
                     a = self.FM.annotations[self.FM.image_list[_index]]
                     self.ui.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
-                    polygons = [r['shape_attributes'] for r in a['regions']]
-                    # Painting prep
-                    self.painter = QPainter(self.pixmap_mask)
-                    self.painter.setCompositionMode(QPainter.CompositionMode_Source)
+                    # polygons = [r['shape_attributes'] for r in a['regions']]
+
                     labelcolors = [
                         self.colors.RED,
                         self.colors.GREEN,
@@ -278,6 +277,7 @@ class ImageProcessor:
                     ]
                     nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5}
                     cidx = 0
+
                     for r in a['regions']:
                         area = QPolygon()
                         p = r['shape_attributes']
@@ -290,11 +290,22 @@ class ImageProcessor:
                             paint_color = labelcolors[cidx]
                             cidx = (cidx + 1) % 6
 
+                        # Painting prep
+                        print('Getting class name')
+                        classname = r['region_attributes']['Name']
+                        print(classname)
+                        try:
+                            self.pixmap_mask[classname]
+                        except KeyError:
+                            self.pixmap_mask[classname] = QPixmap(blank)
+
+                        self.painter = QPainter(self.pixmap_mask[classname])
+                        self.painter.setCompositionMode(QPainter.CompositionMode_Source)
                         self.painter.setPen(QPen(paint_color))
                         self.painter.setBrush(QBrush(paint_color))
                         self.painter.drawPolygon(area)
+                        self.painter.end()
 
-                    self.painter.end()
                 except KeyError:
                     self.ui.statusbar.showMessage('No annotation for this image')
         # 讀取圖檔建立遮罩圖層
@@ -311,8 +322,11 @@ class ImageProcessor:
                 self.ui.statusbar.showMessage(f'No mask file for {self.FM.image_list[_index]}')
                 self.pixmap_mask = QPixmap(blank)
 
+        self.ui.comboBox.clear()
+        for key, val in self.pixmap_mask.items():
+            self.ui.comboBox.addItem(key)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, self.pixmap_img.width(), self.pixmap_img.height()))
-        self.ab.renew_buffer(self.pixmap_mask)
+        self.ab.renew_buffer()
         self.update_mask()
         self.ui.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
         self.main_window.setWindowTitle(f'Mask Editor -- {self.FM.image_list[_index]}')
@@ -321,11 +335,21 @@ class ImageProcessor:
 
     # 更新顯示遮罩
     def update_mask(self):
-        if self.display_mask is None:
-            self.display_mask = self.scene.addPixmap(self.pixmap_mask)
-            self.display_mask.setOpacity(0.5)
+        if self.painting:
+            classname = self.ui.comboBox.currentText()
+            pixmap = self.pixmap_mask[classname]
+            try:
+                self.display_mask[classname].setPixmap(pixmap)
+            except KeyError:
+                self.display_mask[classname] = self.scene.addPixmap(pixmap)
+                self.display_mask[classname].setOpacity(0.5)
         else:
-            self.display_mask.setPixmap(self.pixmap_mask)
+            for classname, pixmap in self.pixmap_mask.items():
+                try:
+                    self.display_mask[classname].setPixmap(pixmap)
+                except KeyError:
+                    self.display_mask[classname] = self.scene.addPixmap(pixmap)
+                    self.display_mask[classname].setOpacity(0.5)
 
     # 復原動作
     def undo_changes(self):
@@ -338,10 +362,8 @@ class ImageProcessor:
         self.update_mask()
 
     # 改變筆刷大小
-    def change_brush_size(self, updateFromSpinbox: bool):
-        value = self.ui.BrushSizeSpinBox.value()
-        if updateFromSpinbox:
-            self.ui.BrushSizeSlider.setSliderPosition(value)
+    def change_brush_size(self):
+        value = self.ui.BrushSizeSlider.value()
         self.brush_size = value
         self.gen_brush()
 
@@ -368,7 +390,7 @@ class ImageProcessor:
         value = self.ui.brightnessSlider.value() / 100
         self.display_img.setOpacity(value)
         if value < 0.5:
-            self.display_mask.setOpacity(1 - value)
+            self.display_mask[self.ui.comboBox.currentText()].setOpacity(1 - value)
 
     # 產生筆刷
     def gen_brush(self):

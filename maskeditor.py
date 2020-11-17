@@ -46,12 +46,7 @@ class MaskEditor:
         self.ui.FuncBtn5.clicked.connect(lambda: self.IP.scale_display(self.IP.zoom_scale))
         self.ui.FuncBtn6.clicked.connect(lambda: self.IP.scale_display(-self.IP.zoom_scale))
         self.ui.listWidget.itemClicked.connect(lambda: self.IP.change_image(self.ui.listWidget.currentRow()))
-        self.ui.BrushSizeSlider.valueChanged.connect(lambda:
-                                                     self.ui.BrushSizeSpinBox.setValue(
-                                                         self.ui.BrushSizeSlider.value())
-                                                     )
-        self.ui.BrushSizeSlider.sliderReleased.connect(lambda: self.IP.change_brush_size(False))
-        self.ui.BrushSizeSpinBox.editingFinished.connect(lambda: self.IP.change_brush_size(True))
+        self.ui.BrushSizeSlider.valueChanged.connect(self.IP.change_brush_size)
         self.ui.brightnessSlider.valueChanged.connect(self.IP.change_photo_brightness)
         self.ui.ColorBtn1.clicked.connect(lambda: self.IP.change_brush_color(0))
         self.ui.ColorBtn2.clicked.connect(lambda: self.IP.change_brush_color(1))
@@ -66,8 +61,7 @@ class MaskEditor:
         # 設定初始圖片
         self.IP.change_image(self.IP.FM.index)
         # 產生筆刷游標
-        self.ui.BrushSizeSpinBox.setValue(self.IP.brush_size)
-        self.IP.change_brush_size(True)
+        self.ui.BrushSizeSlider.setValue(self.IP.brush_size)
         ##
 
 

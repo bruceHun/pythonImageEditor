@@ -43,8 +43,8 @@ background-color: rgb(22, 22, 22);</string>
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="BrushSizePanel">
-        <item>
+       <layout class="QFormLayout" name="formLayout_2">
+        <item row="1" column="0">
          <widget class="QLabel" name="labelBrushSize">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -66,7 +66,7 @@ background-color: rgb(22, 22, 22);</string>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="1" column="1">
          <widget class="QSlider" name="BrushSizeSlider">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -91,36 +91,24 @@ background-color: rgb(22, 22, 22);</string>
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QSpinBox" name="BrushSizeSpinBox">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="layoutDirection">
-           <enum>Qt::LeftToRight</enum>
-          </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="labelCurrClass">
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(255, 255, 255);</string>
+           <string notr="true">color: rgb(255, 255, 255);</string>
           </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="minimum">
-           <number>5</number>
-          </property>
-          <property name="maximum">
-           <number>600</number>
+          <property name="text">
+           <string>Working Class</string>
           </property>
          </widget>
         </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="ImageBrightnessPanel">
-        <item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBox">
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(255, 255, 255);</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
          <widget class="QLabel" name="Brightnesslabel">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -142,7 +130,7 @@ background-color: rgb(22, 22, 22);</string>
           </property>
          </widget>
         </item>
-        <item>
+        <item row="2" column="1">
          <widget class="QSlider" name="brightnessSlider">
           <property name="maximum">
            <number>100</number>
@@ -159,6 +147,9 @@ background-color: rgb(22, 22, 22);</string>
          </widget>
         </item>
        </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="ImageBrightnessPanel"/>
       </item>
       <item>
        <layout class="QGridLayout" name="BrushColorPanel">

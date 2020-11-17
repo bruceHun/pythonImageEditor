@@ -21,10 +21,10 @@ class ImageBufferModule:
         print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 清空 Buffer
-    def renew_buffer(self, pixmap: QPixmap):
+    def renew_buffer(self):
         self.pix_buffer.clear()
         self.buffer_idx = 0
-        self.pix_buffer.append(pixmap.copy())
+        # self.pix_buffer.append(pixmap.copy())
         self.unsaved_actions = 0
         print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
