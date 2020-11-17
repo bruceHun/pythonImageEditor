@@ -4,7 +4,7 @@ import configparser
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
-    QWheelEvent, QPolygon
+    QWheelEvent, QPolygon, QTransform
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferModule
@@ -47,9 +47,8 @@ class ImageProcessor:
     display_img: QGraphicsPixmapItem = None
     display_mask: QGraphicsPixmapItem = None
     scene: QGraphicsScene = None
-    zoom_scale = 0.06
+    zoom_scale = 0.1
     zoom_max = 2
-    zoom_min = 0.1
     # 檔案相關
     FM: FileManager = FileManager()
     # 繪圖相關
@@ -97,9 +96,8 @@ class ImageProcessor:
             self.config.optionxform = str
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
-                                              'ZoomScale': '0.06',
+                                              'ZoomScale': '0.1',
                                               'ZoomMaxScale': '5',
-                                              'ZoomMinScale': '0.1',
                                               'InvertScroll': 'False'}
             self.config["WorkingState"] = {'WorkingImg': '0',
                                            'BrushSize': '300',
@@ -110,9 +108,8 @@ class ImageProcessor:
 
         # 載入新目錄時套用預設工作階段設定
         if is_running:
-            self.zoom_scale = 0.06
+            self.zoom_scale = 0.1
             self.zoom_max = 5
-            self.zoom_min = 0.1
             self.FM.index = 0
             self.brush_size = 300
             self.erase_mode = True
@@ -121,7 +118,6 @@ class ImageProcessor:
             self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
             self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
             self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
-            self.zoom_min = min(max(float(self.config.get('GeneralSettings', 'ZoomMinScale')), 0.01), 1)
             self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
             self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
             self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
@@ -148,13 +144,15 @@ class ImageProcessor:
         if delta is None or delta.y() == 0:
             delta = e.angleDelta() / 10
         modifiers = int(e.modifiers())
-        zoomed = False
 
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
             if keyname == "Ctrl+":
+                oldpos = self.ui.graphicsView.mapToScene(e.pos())
                 self.scale_display(delta.y() * 0.01)
-                zoomed = True
+                newpos = self.ui.graphicsView.mapToScene(e.pos())
+                deltapos = newpos - oldpos
+                self.ui.graphicsView.translate(deltapos.x(), deltapos.y())
             if keyname == "Ctrl+Shift+":
                 value = self.ui.BrushSizeSlider.value() + delta.y()
                 self.ui.BrushSizeSlider.setValue(value)
@@ -173,8 +171,6 @@ class ImageProcessor:
         curr_x = int((e.x() - t.m31()) / t.m11()) - r
         curr_y = int((e.y() - t.m32()) / t.m11()) - r
         self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
-        # if zoomed:
-        #     self.ui.graphicsView.centerOn(self.brush_cursor.pos())
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
@@ -225,15 +221,17 @@ class ImageProcessor:
         if abs(value) < 0.01:
             return
 
-        # self.ui.graphicsView.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         new_scale = 1 + max(min(value, self.zoom_scale), -self.zoom_scale)
         tgt_scale = self.ui.graphicsView.viewportTransform().m11() * new_scale
-        if tgt_scale > self.zoom_max or tgt_scale < self.zoom_min:
+        if tgt_scale > self.zoom_max:
             new_scale = 1
         self.ui.graphicsView.scale(new_scale, new_scale)
+        t = self.ui.graphicsView.viewportTransform()
+        if t.m31() > 0 and t.m32() > 0:
+            self.scale_to_fit()
 
     # 調整 viewport 符合圖片大小
-    def scale_to_fit(self, e):
+    def scale_to_fit(self, e: QWheelEvent = None):
         if self.display_img is not None:
             self.ui.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
 
@@ -341,7 +339,7 @@ class ImageProcessor:
 
     # 改變筆刷大小
     def change_brush_size(self, updateFromSpinbox: bool):
-        value = self.ui.BrushSizeSlider.value()
+        value = self.ui.BrushSizeSpinBox.value()
         if updateFromSpinbox:
             self.ui.BrushSizeSlider.setSliderPosition(value)
         self.brush_size = value
@@ -412,7 +410,6 @@ class ImageProcessor:
         self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
                                           'ZoomScale': str(self.zoom_scale),
                                           'ZoomMaxScale': str(self.zoom_max),
-                                          'ZoomMinScale': str(self.zoom_min),
                                           'InvertScroll': 'False' if self.scroll_speed < 0 else 'True'}
         self.config["WorkingState"] = {'WorkingImg': str(self.FM.index),
                                        'BrushSize': str(self.brush_size),

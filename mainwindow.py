@@ -152,6 +152,7 @@ class Ui_MainWindow(object):
         self.graphicsView.setSizeIncrement(QtCore.QSize(0, 0))
         self.graphicsView.setMouseTracking(True)
         self.graphicsView.setStyleSheet("background-color: rgb(0, 0, 0);")
+        self.graphicsView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.graphicsView.setObjectName("graphicsView")
         self.gridLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
         self.MainScreen = QtWidgets.QHBoxLayout()
