@@ -1,42 +1,59 @@
 from PyQt5.QtGui import QPixmap
 
 
+class BufferItem:
+    c_name: str = ''
+    data: QPixmap = None
+
+    def __init__(self, Name: str, data: QPixmap):
+        self.c_name = Name
+        self.data = data.copy()
+
+
 class ImageBufferModule:
     pix_buffer = []
+    base_data = {}
     buffer_idx: int = -1
     buffer_size: int = 50
     unsaved_actions: int = 0
 
     # 更新 Buffer
-    def update_buffer(self, pixmap: QPixmap):
+    def push(self, classname: str, pixmap: QPixmap):
         # Not at the last element of the buffer
         if self.buffer_idx < (len(self.pix_buffer) - 1):
             del self.pix_buffer[self.buffer_idx + 1:]
             print(f'After clean Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
-        self.pix_buffer.append(pixmap.copy())
+        new_item = BufferItem(classname, pixmap)
+        self.pix_buffer.append(new_item)
         if len(self.pix_buffer) > self.buffer_size:
             self.pix_buffer.pop(0)
         else:
             self.buffer_idx += 1
-        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}, class: {classname}')
 
     # 清空 Buffer
-    def renew_buffer(self):
+    def renew_buffer(self, init_data: dict = None):
         self.pix_buffer.clear()
-        self.buffer_idx = 0
-        # self.pix_buffer.append(pixmap.copy())
+        self.base_data.clear()
+        if init_data is not None:
+            for key, val in init_data.items():
+                self.base_data[key] = BufferItem(key, val)
+        self.buffer_idx = len(self.pix_buffer) - 1
         self.unsaved_actions = 0
         print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
 
     # 復原動作
-    def undo_changes(self):
+    def undo_changes(self, classname: str):
         new_idx = max(self.buffer_idx - 1, 0)
+        if self.buffer_idx == 0:
+            return self.base_data[classname]
+
         if self.buffer_idx == new_idx:
             return None
         else:
             self.buffer_idx = new_idx
         self.unsaved_actions -= 1
-        print(f'Undo to Buffer Index: {self.buffer_idx}')
+
         return self.pix_buffer[self.buffer_idx]
 
     # 重做動作

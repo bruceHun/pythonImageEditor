@@ -36,10 +36,12 @@ class MaskEditor:
         self.ui.action_Open.triggered.connect(lambda: self.IP.init(True))
         self.ui.action_Save_Mask.triggered.connect(self.IP.save_mask)
         self.ui.actionSave_Label.triggered.connect(lambda: self.IP.change_image(self.IP.FM.index))
+        self.ui.actionSettings.triggered.connect(self.IP.change_settings)
         self.ui.action_Quit.triggered.connect(self.win.close)
         self.ui.action_Undo.triggered.connect(self.IP.undo_changes)
         self.ui.action_Redo.triggered.connect(self.IP.redo_changes)
         self.ui.actionDelete.triggered.connect(self.IP.delete_mask)
+        self.ui.action_Add_Class.triggered.connect(self.IP.add_class)
         self.ui.FuncBtn1.clicked.connect(lambda: self.IP.change_image(max(self.IP.FM.index - 1, 0)))
         self.ui.FuncBtn2.clicked.connect(
             lambda: self.IP.change_image(min(self.IP.FM.index + 1, len(self.IP.FM.image_list) - 1)))

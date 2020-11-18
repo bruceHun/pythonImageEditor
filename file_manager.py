@@ -50,14 +50,7 @@ def get_contours(pixmap: QPixmap):
     return cons, cols
 
 
-def add_annotation(filename: str, filesize: int, contours: list, cid: list, typename: str, file: dict):
-
-    file[filename] = {}
-    root = file[filename]
-    root["filename"] = filename
-    root["size"] = filesize
-    root["regions"] = []
-
+def add_regions(_regions: list, contours: list, cid: list, typename: str):
     # Area 內容
     j = 0
     for area in contours:
@@ -67,7 +60,7 @@ def add_annotation(filename: str, filesize: int, contours: list, cid: list, type
             sattr["all_points_x"].append(int(area[i][0][0]))
             sattr["all_points_y"].append(int(area[i][0][1]))
 
-        root["regions"].append(
+        _regions.append(
             {
                 "shape_attributes": sattr,
                 "region_attributes": {
@@ -75,6 +68,15 @@ def add_annotation(filename: str, filesize: int, contours: list, cid: list, type
                     "Color": colorid[cid[j]]
                 }})
         j += 1
+
+
+def add_annotation(filename: str, filesize: int, file: dict) -> list:
+    file[filename] = {}
+    root = file[filename]
+    root["filename"] = filename
+    root["size"] = filesize
+    root["regions"] = []
+    return root["regions"]
 
 
 class FileManager:
@@ -114,7 +116,7 @@ class FileManager:
         if sig[0] == 2:
             return 2
 
-    def save_annotation(self, pixmap: QPixmap):
+    def save_annotation(self, pixmap: dict):
         sig = []
         save_dialog = QDialog()
         dui = Ui_SaveDialog(sig)
@@ -130,9 +132,13 @@ class FileManager:
                 fsize = self.annotations[fname]['size']
             except KeyError:
                 fsize = os.path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
-
-            contours, colorids = get_contours(pixmap)
-            add_annotation(fname, fsize, contours, colorids, 'vehicle', self.annotations)
+            # 創建圖片資訊
+            r = add_annotation(fname, fsize, self.annotations)
+            # 加入區域
+            for t_name, pix in pixmap.items():
+                contours, colorids = get_contours(pix)
+                add_regions(r, contours, colorids, t_name)
+            # 寫入 JSON 檔
             if self.via_fname == '':
                 self.via_fname = f'{self.image_dir}/label.json'
             with open(self.via_fname, 'w') as json_file:

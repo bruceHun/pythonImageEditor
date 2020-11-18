@@ -239,6 +239,8 @@ class Ui_MainWindow(object):
         self.actionSave_Label.setObjectName("actionSave_Label")
         self.actionDelete = QtWidgets.QAction(MainWindow)
         self.actionDelete.setObjectName("actionDelete")
+        self.action_Add_Class = QtWidgets.QAction(MainWindow)
+        self.action_Add_Class.setObjectName("action_Add_Class")
         self.menu_File.addAction(self.action_Open)
         self.menu_File.addAction(self.action_Save_Mask)
         self.menu_File.addAction(self.actionSave_Label)
@@ -251,6 +253,7 @@ class Ui_MainWindow(object):
         self.menu_Edit.addSeparator()
         self.menu_Edit.addAction(self.actionDelete)
         self.menu_Edit.addSeparator()
+        self.menu_Edit.addAction(self.action_Add_Class)
         self.menu_Help.addAction(self.actionI_m_working_on_it)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Edit.menuAction())
@@ -277,7 +280,7 @@ class Ui_MainWindow(object):
         self.action_Setting.setText(_translate("MainWindow", "&Setting"))
         self.action_Open.setText(_translate("MainWindow", "&Open"))
         self.action_Open.setShortcut(_translate("MainWindow", "Ctrl+O"))
-        self.action_Save_Mask.setText(_translate("MainWindow", "&Save Mask"))
+        self.action_Save_Mask.setText(_translate("MainWindow", "Save &Mask"))
         self.action_Save_Mask.setShortcut(_translate("MainWindow", "Ctrl+S"))
         self.actionSettings.setText(_translate("MainWindow", "Settings"))
         self.action_Undo.setText(_translate("MainWindow", "&Undo"))
@@ -286,10 +289,11 @@ class Ui_MainWindow(object):
         self.action_Redo.setShortcut(_translate("MainWindow", "Ctrl+Shift+Z"))
         self.actionI_m_working_on_it.setText(_translate("MainWindow", "I\'m working on it!"))
         self.action_Quit.setText(_translate("MainWindow", "&Quit"))
-        self.actionSave_Label.setText(_translate("MainWindow", "Save Label"))
+        self.actionSave_Label.setText(_translate("MainWindow", "Save &Label"))
         self.actionSave_Label.setShortcut(_translate("MainWindow", "Ctrl+L"))
         self.actionDelete.setText(_translate("MainWindow", "Delete"))
         self.actionDelete.setShortcut(_translate("MainWindow", "Del"))
+        self.action_Add_Class.setText(_translate("MainWindow", "&Add Class"))
 
 
 if __name__ == "__main__":

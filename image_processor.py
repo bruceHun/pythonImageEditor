@@ -2,13 +2,15 @@ from dataclasses import dataclass
 import configparser
 
 from PyQt5.QtCore import QPoint
-from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView
+from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView, QDialog
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
     QWheelEvent, QPolygon, QTransform
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferModule
 from file_manager import FileManager
+from settingsdialog import Ui_DialogSettings
+from lineeditdialog import Ui_DialogLineEdit
 
 
 @dataclass
@@ -43,6 +45,7 @@ class ImageProcessor:
     labeling_mode: bool = True
     pixmap_img: QPixmap = None
     pixmap_mask = {}
+    default_class = 'vechicle'
     pixmap_brush: QPixmap = None
     display_img: QGraphicsPixmapItem = None
     display_mask = {}
@@ -96,6 +99,7 @@ class ImageProcessor:
             self.config.optionxform = str
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
+                                              'DefaultClass': 'object',
                                               'ZoomScale': '0.1',
                                               'ZoomMaxScale': '5',
                                               'InvertScroll': 'False'}
@@ -116,6 +120,7 @@ class ImageProcessor:
             self.scroll_speed = -5
         else:
             self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
+            self.default_class = self.config.get('GeneralSettings', 'DefaultClass')
             self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
             self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
             self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
@@ -175,7 +180,6 @@ class ImageProcessor:
     def start_paint(self, e: QMouseEvent):
         self.painting = True
         self.painter = QPainter(self.pixmap_mask[self.ui.comboBox.currentText()])
-        self.painter.setCompositionMode(QPainter.CompositionMode_Plus)
         p = self.painter.pen()
         p.setColor(self.label_color)
         self.painter.setPen(p)
@@ -196,7 +200,7 @@ class ImageProcessor:
         self.painting = False
         self.ab.unsaved_actions += 1
         self.painter.end()
-        self.ab.update_buffer(self.pixmap_mask)
+        self.ab.push(self.ui.comboBox.currentText(), self.pixmap_mask[self.ui.comboBox.currentText()])
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e: QMouseEvent):
@@ -257,10 +261,12 @@ class ImageProcessor:
 
         blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
         self.pixmap_mask.clear()
+        for key, item in self.display_mask.items():
+            self.scene.removeItem(item)
+        self.display_mask.clear()
+
         # 利用 label 檔的輪廓資訊繪製遮罩
         if self.labeling_mode:
-            # self.pixmap_mask = QPixmap(blank)
-            #
             if len(self.FM.annotations) > 0:
                 try:
                     a = self.FM.annotations[self.FM.image_list[_index]]
@@ -322,14 +328,20 @@ class ImageProcessor:
                 self.ui.statusbar.showMessage(f'No mask file for {self.FM.image_list[_index]}')
                 self.pixmap_mask = QPixmap(blank)
 
+        # 沒有資料導入 創建預設類別圖層
+        if len(self.pixmap_mask) == 0:
+            self.pixmap_mask[self.default_class] = QPixmap(blank)
         self.ui.comboBox.clear()
+
+        # populate Class 下拉式清單
         for key, val in self.pixmap_mask.items():
             self.ui.comboBox.addItem(key)
         self.scene.setSceneRect(QtCore.QRectF(0, 0, self.pixmap_img.width(), self.pixmap_img.height()))
-        self.ab.renew_buffer()
+        self.ab.renew_buffer(self.pixmap_mask)
         self.update_mask()
         self.ui.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
         self.main_window.setWindowTitle(f'Mask Editor -- {self.FM.image_list[_index]}')
+
         self.ui.FuncBtn1.setDisabled(False)
         self.ui.FuncBtn2.setDisabled(False)
 
@@ -353,13 +365,18 @@ class ImageProcessor:
 
     # 復原動作
     def undo_changes(self):
-        self.pixmap_mask = self.ab.undo_changes()
-        self.update_mask()
+        item = self.ab.undo_changes(self.ui.comboBox.currentText())
+        if item is not None:
+            self.pixmap_mask[item.c_name] = item.data
+            self.update_mask()
+            print(f'Undo to Buffer Index: {self.ab.buffer_idx}, class: {item.c_name}')
 
     # 重做動作
     def redo_changes(self):
-        self.pixmap_mask = self.ab.redo_changes()
-        self.update_mask()
+        item = self.ab.redo_changes()
+        if item is not None:
+            self.pixmap_mask[item.c_name] = item.data
+            self.update_mask()
 
     # 改變筆刷大小
     def change_brush_size(self):
@@ -430,6 +447,7 @@ class ImageProcessor:
             self.save_mask()
 
         self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
+                                          'DefaultClass': self.default_class,
                                           'ZoomScale': str(self.zoom_scale),
                                           'ZoomMaxScale': str(self.zoom_max),
                                           'InvertScroll': 'False' if self.scroll_speed < 0 else 'True'}
@@ -453,3 +471,41 @@ class ImageProcessor:
 
     def delete_mask(self):
         self.FM.delete_mask()
+
+    def change_settings(self):
+        dialog_settings = QDialog()
+        ui = Ui_DialogSettings()
+        ui.setupUi(dialog_settings)
+
+        ui.lineEdit.setText(self.FM.image_dir)
+        ui.lineEdit_2.setText(self.default_class)
+        ui.lineEdit_3.setText(str(self.zoom_scale))
+        ui.lineEdit_4.setText(str(self.zoom_max))
+
+        res = dialog_settings.exec()
+        if res == QDialog.Accepted:
+            if ui.lineEdit_2.text() != "":
+                self.default_class = ui.lineEdit_2.text()
+            if ui.lineEdit_3.text() != "":
+                self.zoom_scale = max(min(float(ui.lineEdit_3.text()), 2), 0.01)
+            if ui.lineEdit_4.text() != "":
+                self.zoom_max = max(min(float(ui.lineEdit_4.text()), 10), 2)
+            # update changes
+            self.change_image(self.FM.index)
+
+    def add_class(self):
+        dialog_line_edit = QDialog()
+        ui = Ui_DialogLineEdit()
+        ui.setupUi(dialog_line_edit)
+        dialog_line_edit.setWindowTitle('Add Class')
+        ui.label.setText('Please enter the name of the new class')
+        res = dialog_line_edit.exec()
+
+        if res == QDialog.Accepted and ui.lineEdit.text() != "":
+            blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+            newclass = ui.lineEdit.text().replace(" ", "")
+            self.pixmap_mask[newclass] = QPixmap(blank)
+            self.ui.comboBox.addItem(newclass)
+
+
+

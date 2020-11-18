@@ -430,6 +430,7 @@ selection-color: rgb(255, 170, 0);</string>
     <addaction name="separator"/>
     <addaction name="actionDelete"/>
     <addaction name="separator"/>
+    <addaction name="action_Add_Class"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -461,7 +462,7 @@ selection-color: rgb(255, 170, 0);</string>
   </action>
   <action name="action_Save_Mask">
    <property name="text">
-    <string>&amp;Save Mask</string>
+    <string>Save &amp;Mask</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
@@ -500,7 +501,7 @@ selection-color: rgb(255, 170, 0);</string>
   </action>
   <action name="actionSave_Label">
    <property name="text">
-    <string>Save Label</string>
+    <string>Save &amp;Label</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
@@ -512,6 +513,11 @@ selection-color: rgb(255, 170, 0);</string>
    </property>
    <property name="shortcut">
     <string>Del</string>
+   </property>
+  </action>
+  <action name="action_Add_Class">
+   <property name="text">
+    <string>&amp;Add Class</string>
    </property>
   </action>
  </widget>
