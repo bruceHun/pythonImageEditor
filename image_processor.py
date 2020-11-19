@@ -9,8 +9,8 @@ from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferModule
 from file_manager import FileManager
-from settingsdialog import Ui_DialogSettings
-from lineeditdialog import Ui_DialogLineEdit
+from dialog_settings import Ui_DialogSettings
+from dialog_line_edit import Ui_DialogLineEdit
 
 
 @dataclass
@@ -464,10 +464,7 @@ class ImageProcessor:
 
     def save_annotation(self):
         if self.ab.unsaved_actions != 0:
-            self.FM.save_annotation(self.pixmap_mask)
-
-    def save_label_image(self):
-        self.FM.save_label_image(self.pixmap_mask)
+            return self.FM.save_annotation(self.pixmap_mask)
 
     def delete_mask(self):
         self.FM.delete_mask()

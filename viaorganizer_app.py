@@ -39,7 +39,7 @@ class ViaOrganizer:
             filename = self.UI.listWidget.item(i).text()
             json_out[filename] = self.json_in[filename]
 
-        with open('modified_json.json', 'w') as json_file:
+        with open('../modified_json.json', 'w') as json_file:
             json_file.write(str(json.dumps(json_out)))
 
     # 刪除選取項目

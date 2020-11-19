@@ -1,12 +1,10 @@
 import os
 import json
-from cv2 import inRange, threshold, findContours, RETR_TREE, RETR_FLOODFILL, CHAIN_APPROX_TC89_L1, imshow
+from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_TC89_L1
 import numpy as np
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QPixmap, QColor, QPixelFormat, QPainter
-from savedialog import Ui_SaveDialog
-from deletedialog import Ui_DeleteDialog
+from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter
 
 lows: np.array = np.array([[128, 0, 0, 255],
                            [0, 128, 0, 255],
@@ -27,7 +25,6 @@ colorid = ['Blue', 'Green', 'Red', 'Aqua', 'Fuchsia', 'Yellow']
 
 
 def get_contours(pixmap: QPixmap):
-
     cons = []
     cols = []
 
@@ -85,6 +82,7 @@ class FileManager:
     annotations = {}
     image_dir = './'
     index = -1
+    dialog_root: QDialog = None
 
     def get_file_lists(self, _labeling: bool = False):
         for file in os.listdir(self.image_dir):
@@ -95,38 +93,17 @@ class FileManager:
                 with open(self.via_fname, 'r') as json_file:
                     self.annotations = json.load(json_file)
 
-    # 儲存 label 圖片
-    # def save_label_image(self, pixmap: QPixmap):
-    #     sig = []
-    #     save_dialog = QDialog()
-    #     dui = Ui_SaveDialog(sig)
-    #     dui.setupUi(save_dialog)
-    #     dui.labelMessage.setText("Would you like to save as a label image?")
-    #     save_dialog.setAttribute(Qt.WA_DeleteOnClose)
-    #     save_dialog.exec()
-    #     if sig[0] == 3:
-    #         return 3
-    #     if sig[0] == 1:
-    #         path = f'{self.image_dir}/{self.image_list[self.index]}'
-    #         path = path[: len(path) - 4] + '.png'
-    #         image = pixmap.toImage().convertToFormat(QImage.Format_RGB32)
-    #         image.save(path)
-    #         # self.ui.statusbar.showMessage(f'Label image saved ({path})')
-    #         return 1
-    #     if sig[0] == 2:
-    #         return 2
-
     def save_annotation(self, pixmap: dict):
-        sig = []
-        save_dialog = QDialog()
-        dui = Ui_SaveDialog(sig)
-        dui.setupUi(save_dialog)
-        dui.labelMessage.setText("Would you like to save annotations?")
-        save_dialog.setAttribute(Qt.WA_DeleteOnClose)
-        save_dialog.exec()
-        if sig[0] == 3:
-            return 3
-        if sig[0] == 1:
+        if self.dialog_root is None:
+            self.dialog_root = QDialog()
+        result = QMessageBox.question(self.dialog_root,
+                                      "Save changes?",
+                                      "Would you like to save your changes?\n"
+                                      "\n[Yes] Save changes"
+                                      "\n[No] Discard changes",
+                                      QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+
+        if result == QMessageBox.Yes:
             fname = f'{self.image_list[self.index]}'
             try:
                 fsize = self.annotations[fname]['size']
@@ -145,20 +122,22 @@ class FileManager:
             with open(self.via_fname, 'w') as json_file:
                 json_file.write(str(json.dumps(self.annotations)))
             return 1
-        if sig[0] == 2:
+
+        elif result == QMessageBox.No:
             return 2
+
+        elif result == QMessageBox.Cancel:
+            return 3
 
     # 儲存遮罩圖片
     def save_mask(self, pixmaps: dict):
-        sig = []
-        save_dialog = QDialog()
-        dui = Ui_SaveDialog(sig)
-        dui.setupUi(save_dialog)
-        save_dialog.setAttribute(Qt.WA_DeleteOnClose)
-        save_dialog.exec()
-        if sig[0] == 3:
-            return 3
-        if sig[0] == 1:
+        if self.dialog_root is None:
+            self.dialog_root = QDialog()
+        result = QMessageBox.question(self.dialog_root,
+                                      "Export to mask file?",
+                                      "Would you like to export current image?",
+                                      QMessageBox.Yes | QMessageBox.No)
+        if result == QMessageBox.Yes:
             pixmap: QPixmap = QPixmap()
             painter: QPainter = QPainter()
             i = 0
@@ -176,7 +155,7 @@ class FileManager:
             bit.save(path)
             # self.ui.statusbar.showMessage(f'Mask image saved ({path})')
             return 1
-        if sig[0] == 2:
+        elif result == QMessageBox.No:
             return 2
 
     # 刪除遮罩圖片
@@ -185,25 +164,13 @@ class FileManager:
         image_exist = os.path.isfile(path)
         if not image_exist:
             return 4
-        sig = []
-        delete_dialog = QDialog()
-        dui = Ui_DeleteDialog(sig)
-        dui.setupUi(delete_dialog)
-        dui.labelFilename.setText(f'{self.image_list[self.index]}_mask.tif')
-        delete_dialog.setAttribute(Qt.WA_DeleteOnClose)
-        delete_dialog.exec()
-        if sig[0] == 1:
+        if self.dialog_root is None:
+            self.dialog_root = QDialog()
+        result = QMessageBox.question(self.dialog_root,
+                                      "Delete mask file?",
+                                      "Would you like to delete the following file?"
+                                      f'{self.image_list[self.index]}_mask.tif',
+                                      QMessageBox.Yes | QMessageBox.No)
+        if result == QMessageBox.Yes:
             os.remove(path)
-        # if sig[0] == 1:
-        #     idx = self.index
-        #     moveto = (idx + 1) if idx < (len(self.image_list) - 1) else (idx - 1)
-        #     self.ui.listWidget.setCurrentRow(moveto)
-        #     path = f'{self.image_dir}/{self.mask_list[idx]}'
-        #     os.remove(path)
-        #     self.ui.listWidget.takeItem(idx)
-        #     self.image_list.pop(idx)
-        #     self.mask_list.pop(idx)
-        #     self.index = moveto if idx > moveto else idx
-        #     self.ui.statusbar.showMessage(f'File "{path}" has been deleted')
-
 
