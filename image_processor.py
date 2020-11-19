@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import configparser
-
+import os
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView, QDialog
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
@@ -192,11 +192,11 @@ class ImageProcessor:
             QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
         )
         self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
-        self.ui.centralwidget.update()
-        self.update_mask()
+        # self.ui.centralwidget.update()
 
     # 結束繪圖
     def end_paint(self, e):
+        self.update_mask()
         self.painting = False
         self.ab.unsaved_actions += 1
         self.painter.end()
@@ -269,7 +269,10 @@ class ImageProcessor:
         if self.labeling_mode:
             if len(self.FM.annotations) > 0:
                 try:
-                    a = self.FM.annotations[self.FM.image_list[_index]]
+                    f_name = self.FM.image_list[_index]
+                    f_size = os.path.getsize(f'{self.FM.image_dir}/{f_name}')
+                    f_name = f'{f_name}{f_size}'
+                    a = self.FM.annotations[f_name]
                     self.ui.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
                     # polygons = [r['shape_attributes'] for r in a['regions']]
 
@@ -296,15 +299,13 @@ class ImageProcessor:
                             paint_color = labelcolors[cidx]
                             cidx = (cidx + 1) % 6
 
-                        # Painting prep
-                        print('Getting class name')
                         classname = r['region_attributes']['Name']
-                        print(classname)
                         try:
                             self.pixmap_mask[classname]
                         except KeyError:
                             self.pixmap_mask[classname] = QPixmap(blank)
 
+                        # Painting prep
                         self.painter = QPainter(self.pixmap_mask[classname])
                         self.painter.setCompositionMode(QPainter.CompositionMode_Source)
                         self.painter.setPen(QPen(paint_color))
@@ -365,7 +366,7 @@ class ImageProcessor:
 
     # 復原動作
     def undo_changes(self):
-        item = self.ab.undo_changes(self.ui.comboBox.currentText())
+        item = self.ab.undo_changes()
         if item is not None:
             self.pixmap_mask[item.c_name] = item.data
             self.update_mask()
@@ -459,8 +460,7 @@ class ImageProcessor:
             self.config.write(file)
 
     def save_mask(self):
-        if self.ab.unsaved_actions != 0:
-            self.FM.save_mask(self.pixmap_mask)
+        self.FM.save_mask(self.pixmap_mask)
 
     def save_annotation(self):
         if self.ab.unsaved_actions != 0:

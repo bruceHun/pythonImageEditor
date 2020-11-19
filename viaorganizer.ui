@@ -39,7 +39,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -56,6 +56,9 @@
      <string>&amp;Edit</string>
     </property>
     <addaction name="action_Delete"/>
+    <addaction name="separator"/>
+    <addaction name="actionConvert_to_simple_name"/>
+    <addaction name="actionConvert_to_VIA_naming"/>
    </widget>
    <widget class="QMenu" name="menu_Quit">
     <property name="title">
@@ -94,6 +97,16 @@
   <action name="action_Quit">
    <property name="text">
     <string>&amp;Quit</string>
+   </property>
+  </action>
+  <action name="actionConvert_to_simple_name">
+   <property name="text">
+    <string>Convert to &amp;Simple naming</string>
+   </property>
+  </action>
+  <action name="actionConvert_to_VIA_naming">
+   <property name="text">
+    <string>Convert to &amp;VIA naming</string>
    </property>
   </action>
  </widget>

@@ -414,10 +414,11 @@ selection-color: rgb(255, 170, 0);</string>
      <string>&amp;File</string>
     </property>
     <addaction name="action_Open"/>
-    <addaction name="action_Save_Mask"/>
-    <addaction name="actionSave_Label"/>
+    <addaction name="action_Save"/>
     <addaction name="separator"/>
-    <addaction name="actionSettings"/>
+    <addaction name="action_Settings"/>
+    <addaction name="separator"/>
+    <addaction name="action_Export_to_Mask"/>
     <addaction name="separator"/>
     <addaction name="action_Quit"/>
    </widget>
@@ -428,7 +429,7 @@ selection-color: rgb(255, 170, 0);</string>
     <addaction name="action_Undo"/>
     <addaction name="action_Redo"/>
     <addaction name="separator"/>
-    <addaction name="actionDelete"/>
+    <addaction name="action_Delete"/>
     <addaction name="separator"/>
     <addaction name="action_Add_Class"/>
    </widget>
@@ -447,11 +448,6 @@ selection-color: rgb(255, 170, 0);</string>
     <string notr="true">color: rgb(254, 204, 9);</string>
    </property>
   </widget>
-  <action name="action_Setting">
-   <property name="text">
-    <string>&amp;Setting</string>
-   </property>
-  </action>
   <action name="action_Open">
    <property name="text">
     <string>&amp;Open</string>
@@ -460,15 +456,7 @@ selection-color: rgb(255, 170, 0);</string>
     <string>Ctrl+O</string>
    </property>
   </action>
-  <action name="action_Save_Mask">
-   <property name="text">
-    <string>Save &amp;Mask</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
-   </property>
-  </action>
-  <action name="actionSettings">
+  <action name="action_Settings">
    <property name="text">
     <string>Settings</string>
    </property>
@@ -499,17 +487,17 @@ selection-color: rgb(255, 170, 0);</string>
     <string>&amp;Quit</string>
    </property>
   </action>
-  <action name="actionSave_Label">
+  <action name="action_Save">
    <property name="text">
-    <string>Save &amp;Label</string>
+    <string>&amp;Save</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+L</string>
+    <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="actionDelete">
+  <action name="action_Delete">
    <property name="text">
-    <string>Delete</string>
+    <string>&amp;Delete</string>
    </property>
    <property name="shortcut">
     <string>Del</string>
@@ -518,6 +506,11 @@ selection-color: rgb(255, 170, 0);</string>
   <action name="action_Add_Class">
    <property name="text">
     <string>&amp;Add Class</string>
+   </property>
+  </action>
+  <action name="action_Export_to_Mask">
+   <property name="text">
+    <string>&amp;Export to Mask</string>
    </property>
   </action>
  </widget>

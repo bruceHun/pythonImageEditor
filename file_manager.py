@@ -4,7 +4,7 @@ from cv2 import inRange, threshold, findContours, RETR_TREE, RETR_FLOODFILL, CHA
 import numpy as np
 from PyQt5.QtWidgets import QDialog
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QPixmap, QColor, QPixelFormat
+from PyQt5.QtGui import QImage, QPixmap, QColor, QPixelFormat, QPainter
 from savedialog import Ui_SaveDialog
 from deletedialog import Ui_DeleteDialog
 
@@ -96,25 +96,25 @@ class FileManager:
                     self.annotations = json.load(json_file)
 
     # 儲存 label 圖片
-    def save_label_image(self, pixmap: QPixmap):
-        sig = []
-        save_dialog = QDialog()
-        dui = Ui_SaveDialog(sig)
-        dui.setupUi(save_dialog)
-        dui.labelMessage.setText("Would you like to save as a label image?")
-        save_dialog.setAttribute(Qt.WA_DeleteOnClose)
-        save_dialog.exec()
-        if sig[0] == 3:
-            return 3
-        if sig[0] == 1:
-            path = f'{self.image_dir}/{self.image_list[self.index]}'
-            path = path[: len(path) - 4] + '.png'
-            image = pixmap.toImage().convertToFormat(QImage.Format_RGB32)
-            image.save(path)
-            # self.ui.statusbar.showMessage(f'Label image saved ({path})')
-            return 1
-        if sig[0] == 2:
-            return 2
+    # def save_label_image(self, pixmap: QPixmap):
+    #     sig = []
+    #     save_dialog = QDialog()
+    #     dui = Ui_SaveDialog(sig)
+    #     dui.setupUi(save_dialog)
+    #     dui.labelMessage.setText("Would you like to save as a label image?")
+    #     save_dialog.setAttribute(Qt.WA_DeleteOnClose)
+    #     save_dialog.exec()
+    #     if sig[0] == 3:
+    #         return 3
+    #     if sig[0] == 1:
+    #         path = f'{self.image_dir}/{self.image_list[self.index]}'
+    #         path = path[: len(path) - 4] + '.png'
+    #         image = pixmap.toImage().convertToFormat(QImage.Format_RGB32)
+    #         image.save(path)
+    #         # self.ui.statusbar.showMessage(f'Label image saved ({path})')
+    #         return 1
+    #     if sig[0] == 2:
+    #         return 2
 
     def save_annotation(self, pixmap: dict):
         sig = []
@@ -132,6 +132,7 @@ class FileManager:
                 fsize = self.annotations[fname]['size']
             except KeyError:
                 fsize = os.path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
+            fname = f'{fname}{fsize}'
             # 創建圖片資訊
             r = add_annotation(fname, fsize, self.annotations)
             # 加入區域
@@ -140,7 +141,7 @@ class FileManager:
                 add_regions(r, contours, colorids, t_name)
             # 寫入 JSON 檔
             if self.via_fname == '':
-                self.via_fname = f'{self.image_dir}/label.json'
+                self.via_fname = f'{self.image_dir}/via_region_data.json'
             with open(self.via_fname, 'w') as json_file:
                 json_file.write(str(json.dumps(self.annotations)))
             return 1
@@ -148,7 +149,7 @@ class FileManager:
             return 2
 
     # 儲存遮罩圖片
-    def save_mask(self, pixmap: QPixmap):
+    def save_mask(self, pixmaps: dict):
         sig = []
         save_dialog = QDialog()
         dui = Ui_SaveDialog(sig)
@@ -158,6 +159,18 @@ class FileManager:
         if sig[0] == 3:
             return 3
         if sig[0] == 1:
+            pixmap: QPixmap = QPixmap()
+            painter: QPainter = QPainter()
+            i = 0
+            for key, val in pixmaps.items():
+                if i == 0:
+                    pixmap = val.copy()
+                    painter = QPainter(pixmap)
+                else:
+                    painter.drawPixmap(val)
+                i += 1
+            painter.end()
+
             path = f'{self.image_dir}/{self.image_list[self.index]}_mask.tif'
             bit = pixmap.createMaskFromColor(QColor(0, 0, 0, 0))
             bit.save(path)

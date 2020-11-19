@@ -12,7 +12,7 @@ class BufferItem:
 
 class ImageBufferModule:
     pix_buffer = []
-    base_data = {}
+    buffer_begin: int = 0
     buffer_idx: int = -1
     buffer_size: int = 50
     unsaved_actions: int = 0
@@ -20,7 +20,7 @@ class ImageBufferModule:
     # 更新 Buffer
     def push(self, classname: str, pixmap: QPixmap):
         # Not at the last element of the buffer
-        if self.buffer_idx < (len(self.pix_buffer) - 1):
+        if self.buffer_idx < (len(self.pix_buffer) - self.buffer_begin - 1):
             del self.pix_buffer[self.buffer_idx + 1:]
             print(f'After clean Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
         new_item = BufferItem(classname, pixmap)
@@ -34,20 +34,18 @@ class ImageBufferModule:
     # 清空 Buffer
     def renew_buffer(self, init_data: dict = None):
         self.pix_buffer.clear()
-        self.base_data.clear()
         if init_data is not None:
             for key, val in init_data.items():
-                self.base_data[key] = BufferItem(key, val)
+                item = BufferItem(key, val)
+                self.pix_buffer.append(item)
         self.buffer_idx = len(self.pix_buffer) - 1
+        self.buffer_begin = self.buffer_idx
         self.unsaved_actions = 0
-        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}')
+        print(f'Buffer Size: {len(self.pix_buffer)}, Current Index: {self.buffer_idx}, begin: {self.buffer_begin}')
 
     # 復原動作
-    def undo_changes(self, classname: str):
+    def undo_changes(self):
         new_idx = max(self.buffer_idx - 1, 0)
-        if self.buffer_idx == 0:
-            return self.base_data[classname]
-
         if self.buffer_idx == new_idx:
             return None
         else:
