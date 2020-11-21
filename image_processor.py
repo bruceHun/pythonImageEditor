@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen
     QWheelEvent, QPolygon, QTransform
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
-from image_buffer_module import ImageBufferModule
+from image_buffer_module import ImageBufferManager
 from file_manager import FileManager
 from dialog_settings import Ui_DialogSettings
 from dialog_line_edit import Ui_DialogLineEdit
@@ -66,7 +66,7 @@ class ImageProcessor:
     # 操作設定相關
     scroll_speed = -5
     # 繪圖緩衝區模組
-    ab: ImageBufferModule = ImageBufferModule()
+    ab: ImageBufferManager = ImageBufferManager()
     # 上層顯示物件
     ui: Ui_MainWindow = None
     main_window: QMainWindow = None
@@ -366,17 +366,18 @@ class ImageProcessor:
 
     # 復原動作
     def undo_changes(self):
-        item = self.ab.undo_changes()
-        if item is not None:
-            self.pixmap_mask[item.c_name] = item.data
+        classname = self.ui.comboBox.currentText()
+        pixmap = self.ab.undo_changes(classname)
+        if pixmap is not None:
+            self.pixmap_mask[classname] = pixmap
             self.update_mask()
-            print(f'Undo to Buffer Index: {self.ab.buffer_idx}, class: {item.c_name}')
 
     # 重做動作
     def redo_changes(self):
-        item = self.ab.redo_changes()
-        if item is not None:
-            self.pixmap_mask[item.c_name] = item.data
+        classname = self.ui.comboBox.currentText()
+        pixmap = self.ab.redo_changes(classname)
+        if pixmap is not None:
+            self.pixmap_mask[classname] = pixmap
             self.update_mask()
 
     # 改變筆刷大小
@@ -444,8 +445,8 @@ class ImageProcessor:
 
     # 離開程式
     def on_exit(self, e):
-        if len(self.ab.pix_buffer) > 1:
-            self.save_mask()
+        if self.ab.unsaved_actions > 0:
+            self.save_annotation()
 
         self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
                                           'DefaultClass': self.default_class,
