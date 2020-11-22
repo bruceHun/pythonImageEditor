@@ -16,7 +16,7 @@ class BufferItem:
             return
         self.index = new_index
         self.data.append(pixmap.copy())
-        print(f'push {self.index}, buffer_size: {len(self.data)}')
+        print(f'push index: {self.index}, buffer_size: {len(self.data)}')
 
     def peek(self) -> QPixmap:
         return self.data[self.index]

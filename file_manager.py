@@ -1,6 +1,6 @@
 import os
 import json
-from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_TC89_L1
+from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_TC89_L1, CHAIN_APPROX_SIMPLE
 import numpy as np
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import Qt
@@ -39,7 +39,7 @@ def get_contours(pixmap: QPixmap):
         ret, thresh = threshold(output, 128, 255, 0)
         # thresh = np.where(img == colorlist[i], 255, 0)
         # 尋找輪廓
-        contours, hierarchy = findContours(thresh, RETR_TREE, CHAIN_APPROX_TC89_L1)
+        contours, hierarchy = findContours(thresh, RETR_TREE, CHAIN_APPROX_SIMPLE)
         if len(contours) != 0:
             for area in contours:
                 cons.append(area)
@@ -84,23 +84,25 @@ class FileManager:
     index = -1
     dialog_root: QDialog = None
 
-    def get_file_lists(self, _labeling: bool = False):
+    def __init__(self):
+        self.dialog_root = QDialog()
+
+    def get_file_lists(self):
         for file in os.listdir(self.image_dir):
-            if file.endswith('.JPG') or file.endswith('.jpg') or file.endswith('.png'):
+            f_lower = file.lower()
+            if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
                 self.image_list.append(file)
-            if file.endswith('.json') and _labeling:
+            elif f_lower.endswith('.json'):
                 self.via_fname = f'{self.image_dir}/{file}'
                 with open(self.via_fname, 'r') as json_file:
                     self.annotations = json.load(json_file)
 
     def save_annotation(self, pixmap: dict):
-        if self.dialog_root is None:
-            self.dialog_root = QDialog()
         result = QMessageBox.question(self.dialog_root,
                                       "Save changes?",
                                       "Would you like to save your changes?\n"
-                                      "\n[Yes] Save changes"
-                                      "\n[No] Discard changes",
+                                      "\n[Yes] saves your changes"
+                                      "\n[No]  discards your changes",
                                       QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
 
         if result == QMessageBox.Yes:
@@ -131,11 +133,9 @@ class FileManager:
 
     # 儲存遮罩圖片
     def save_mask(self, pixmaps: dict):
-        if self.dialog_root is None:
-            self.dialog_root = QDialog()
         result = QMessageBox.question(self.dialog_root,
                                       "Export to mask file?",
-                                      "Would you like to export current image?",
+                                      "Would you like to export current mask to an image file?",
                                       QMessageBox.Yes | QMessageBox.No)
         if result == QMessageBox.Yes:
             pixmap: QPixmap = QPixmap()
@@ -164,11 +164,9 @@ class FileManager:
         image_exist = os.path.isfile(path)
         if not image_exist:
             return 4
-        if self.dialog_root is None:
-            self.dialog_root = QDialog()
         result = QMessageBox.question(self.dialog_root,
                                       "Delete mask file?",
-                                      "Would you like to delete the following file?"
+                                      "Are you sure that you want to permanently delete this file?"
                                       f'{self.image_list[self.index]}_mask.tif',
                                       QMessageBox.Yes | QMessageBox.No)
         if result == QMessageBox.Yes:
