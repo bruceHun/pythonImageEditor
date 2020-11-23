@@ -1,2 +1,2 @@
 call venv\Scripts\activate 
-python viaorganizer.py
+python viaorganizer_app.py

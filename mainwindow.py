@@ -239,6 +239,9 @@ class Ui_MainWindow(object):
         self.action_Add_Class.setObjectName("action_Add_Class")
         self.action_Export_to_Mask = QtWidgets.QAction(MainWindow)
         self.action_Export_to_Mask.setObjectName("action_Export_to_Mask")
+        self.action_Select_Polygon = QtWidgets.QAction(MainWindow)
+        self.action_Select_Polygon.setCheckable(True)
+        self.action_Select_Polygon.setObjectName("action_Select_Polygon")
         self.menu_File.addAction(self.action_Open)
         self.menu_File.addAction(self.action_Save)
         self.menu_File.addSeparator()
@@ -253,6 +256,7 @@ class Ui_MainWindow(object):
         self.menu_Edit.addAction(self.action_Delete)
         self.menu_Edit.addSeparator()
         self.menu_Edit.addAction(self.action_Add_Class)
+        self.menu_Edit.addAction(self.action_Select_Polygon)
         self.menu_Help.addAction(self.actionI_m_working_on_it)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Edit.menuAction())
@@ -291,6 +295,7 @@ class Ui_MainWindow(object):
         self.action_Delete.setShortcut(_translate("MainWindow", "Del"))
         self.action_Add_Class.setText(_translate("MainWindow", "&Add Class"))
         self.action_Export_to_Mask.setText(_translate("MainWindow", "&Export to Mask"))
+        self.action_Select_Polygon.setText(_translate("MainWindow", "&Select Polygon"))
 
 
 if __name__ == "__main__":

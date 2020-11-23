@@ -432,6 +432,7 @@ selection-color: rgb(255, 170, 0);</string>
     <addaction name="action_Delete"/>
     <addaction name="separator"/>
     <addaction name="action_Add_Class"/>
+    <addaction name="action_Select_Polygon"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -511,6 +512,14 @@ selection-color: rgb(255, 170, 0);</string>
   <action name="action_Export_to_Mask">
    <property name="text">
     <string>&amp;Export to Mask</string>
+   </property>
+  </action>
+  <action name="action_Select_Polygon">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Select Polygon</string>
    </property>
   </action>
  </widget>

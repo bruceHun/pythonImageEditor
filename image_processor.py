@@ -1,16 +1,23 @@
 from dataclasses import dataclass
 import configparser
 import os
-from PyQt5.QtCore import QPoint
-from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView, QDialog
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView, QDialog, \
+    QGraphicsPolygonItem, QGraphicsLineItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
-    QWheelEvent, QPolygon, QTransform
+    QWheelEvent, QPolygon, QTransform, QPolygonF, QPainterPath
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
 from file_manager import FileManager
 from dialog_settings import Ui_DialogSettings
 from dialog_line_edit import Ui_DialogLineEdit
+from enum import Enum
+
+
+class PMode(Enum):
+    Brush = 1
+    Select = 2
 
 
 @dataclass
@@ -44,9 +51,11 @@ class ImageProcessor:
     #
     pixmap_img: QPixmap = None
     pixmap_mask = {}
-    default_class = 'vechicle'
+    default_class = 'object'
     pixmap_brush: QPixmap = None
     display_img: QGraphicsPixmapItem = None
+    display_sel: QGraphicsPixmapItem = None
+    display_line: QGraphicsLineItem = None
     display_mask = {}
     scene: QGraphicsScene = None
     zoom_scale = 0.1
@@ -58,6 +67,8 @@ class ImageProcessor:
     brush_cursor: QGraphicsPixmapItem = None
     painter: QPainter = None
     painting: bool = False
+    paint_mode: PMode = PMode.Brush
+    selections_pnt: list = []
     erase_mode: bool = True
     label_color: QColor = False
     mask: QBitmap = None
@@ -75,6 +86,7 @@ class ImageProcessor:
     def __init__(self):
         self.FM = FileManager()
         self.BM = ImageBufferManager()
+        self.selection_layer = QPixmap()
 
     def init(self, is_running: bool = False):
         if is_running:
@@ -142,10 +154,30 @@ class ImageProcessor:
         key = e.key()
         if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_BracketRight:
             self.scale_display(self.zoom_scale)
-        if key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_BracketLeft:
+        elif key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_BracketLeft:
             self.scale_display(-self.zoom_scale)
-        if key == QtCore.Qt.Key_Space:
+        elif key == QtCore.Qt.Key_Space:
             self.scale_to_fit(e)
+        if self.painting and self.paint_mode == PMode.Select:
+            if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
+                self.painting = False
+                self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
+                self.painter.setPen(QPen(self.label_color))
+                self.painter.setBrush(QBrush(self.label_color))
+                self.painter.setCompositionMode(QPainter.CompositionMode_Source)
+                self.painter.drawPolygon(QPolygonF(self.selections_pnt))
+                self.painter.end()
+                self.update_mask()
+                self.scene.removeItem(self.display_line)
+                self.scene.removeItem(self.display_sel)
+                self.selections_pnt.clear()
+                self.BM.unsaved_actions += 1
+                self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
+            elif key == QtCore.Qt.Key_Escape:
+                self.painting = False
+                self.scene.removeItem(self.display_line)
+                self.scene.removeItem(self.display_sel)
+                self.selections_pnt.clear()
 
     def mouse_wheel_event(self, e: QWheelEvent):
         delta: QtCore.QPoint = e.pixelDelta()
@@ -173,53 +205,80 @@ class ImageProcessor:
             value = self.UI.graphicsView.verticalScrollBar().value() + delta.y()
             self.UI.graphicsView.verticalScrollBar().setValue(value)
         # Update cursor position
-        t = self.UI.graphicsView.viewportTransform()
         r = int(self.brush_size / 2)
-        curr_x = int((e.x() - t.m31()) / t.m11()) - r
-        curr_y = int((e.y() - t.m32()) / t.m11()) - r
-        self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
+        curr_pos = self.UI.graphicsView.mapToScene(e.pos())
+        curr_pos.setX(curr_pos.x() - r)
+        curr_pos.setY(curr_pos.y() - r)
+        self.brush_cursor.setPos(curr_pos)
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
+        # if self.painting:
+        #     # self.painter.end()
+        #     # self.selections_pnt.clear()
+        #     self.painting = False
+        # else:
         self.painting = True
-        self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
-        p = self.painter.pen()
-        p.setColor(self.label_color)
-        self.painter.setPen(p)
-        self.painter.setBrush(QBrush(self.label_color))
-        t = self.UI.graphicsView.viewportTransform()
         r = int(self.brush_size / 2)
-        curr_x = int((e.x() - t.m31()) / t.m11()) - r
-        curr_y = int((e.y() - t.m32()) / t.m11()) - r
-        self.painter.setCompositionMode(
-            QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
-        )
-        self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
-        # self.ui.centralwidget.update()
+        curr_pos = self.UI.graphicsView.mapToScene(e.pos())
+        if self.paint_mode == PMode.Brush:
+            self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
+            p = self.painter.pen()
+            p.setColor(self.label_color)
+            self.painter.setPen(p)
+            self.painter.setBrush(QBrush(self.label_color))
 
-    # 結束繪圖
-    def end_paint(self, e):
-        self.update_mask()
-        self.painting = False
-        self.BM.unsaved_actions += 1
-        self.painter.end()
-        self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
-
-    # 滑鼠游標在繪圖區移動
-    def mouse_movement(self, e: QMouseEvent):
-        # t = self.ui.graphicsView.viewportTransform()
-        r = int(self.brush_size / 2)
-        # curr_x = int((e.x() - t.m31()) / t.m11()) - r
-        # curr_y = int((e.y() - t.m32()) / t.m11()) - r
-        mappos = self.UI.graphicsView.mapToScene(e.pos())
-        curr_x, curr_y = mappos.x() - r, mappos.y() - r
-        if self.painting:
             self.painter.setCompositionMode(
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
             )
-            self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
+            self.painter.drawEllipse(curr_pos.x() - r, curr_pos.y() - r, self.brush_size, self.brush_size)
             # self.ui.centralwidget.update()
+        elif self.paint_mode == PMode.Select:
+            self.selections_pnt.append(curr_pos)
+            print(f'Num of Points: {len(self.selections_pnt)}')
+            if self.display_sel is not None:
+                self.scene.removeItem(self.display_sel)
+            my_path = QPainterPath()
+            self.selection_layer.fill(self.colors.BLANK)
+            my_path.addPolygon(QPolygonF(self.selections_pnt))
+            my_path.closeSubpath()
+            pt = QPainter(self.selection_layer)
+            pt.setPen(QPen(Qt.yellow, 5))
+            pt.drawPath(my_path)
+            self.display_sel = self.scene.addPixmap(self.selection_layer)
+
+    # 結束繪圖
+    def end_paint(self, e):
+        if self.paint_mode == PMode.Brush:
             self.update_mask()
+            self.painting = False
+            self.BM.unsaved_actions += 1
+            self.painter.end()
+            self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
+
+    # 滑鼠游標在繪圖區移動
+    def mouse_movement(self, e: QMouseEvent):
+        r = int(self.brush_size / 2)
+        mappos = self.UI.graphicsView.mapToScene(e.pos())
+        curr_x, curr_y = mappos.x() - r, mappos.y() - r
+        if self.painting:
+            if self.paint_mode == PMode.Brush:
+                self.painter.setCompositionMode(
+                    QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
+                )
+                self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
+                # self.ui.centralwidget.update()
+                self.update_mask()
+            elif self.paint_mode == PMode.Select:
+                # self.painter.setCompositionMode(QPainter.CompositionMode_Source)
+                # self.selection_layer.fill(self.colors.BLANK)
+                top = len(self.selections_pnt) - 1
+                ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
+                if self.display_line is not None:
+                    self.scene.removeItem(self.display_line)
+                self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(), QPen(Qt.yellow, 5))
+                # self.painter.drawLine(ax, ay, mappos.x(), mappos.y())
+                # self.display_sel.setPixmap(self.selection_layer)
 
         self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
 
@@ -254,11 +313,15 @@ class ImageProcessor:
         self.UI.listWidget.setCurrentRow(_index)
 
         self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{self.FM.image_list[_index]}')
+        blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+        self.selection_layer = QPixmap(blank)
 
         if self.display_img is None:
             self.display_img = self.scene.addPixmap(self.pixmap_img)
+            self.display_sel = self.scene.addPixmap(self.selection_layer)
         else:
             self.display_img.setPixmap(self.pixmap_img)
+            self.display_sel.setPixmap(self.selection_layer)
 
         self.draw_annotations(_index)
 
@@ -501,5 +564,9 @@ class ImageProcessor:
             self.pixmap_mask[newclass] = QPixmap(blank)
             self.UI.comboBox.addItem(newclass)
 
-
+    def change_paint_mode(self):
+        if self.UI.action_Select_Polygon.isChecked():
+            self.paint_mode = PMode.Select
+        else:
+            self.paint_mode = PMode.Brush
 

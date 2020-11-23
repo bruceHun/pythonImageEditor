@@ -43,6 +43,7 @@ class MaskEditor:
         self.UI.action_Redo.triggered.connect(self.IP.redo_changes)
         self.UI.action_Delete.triggered.connect(self.IP.delete_mask)
         self.UI.action_Add_Class.triggered.connect(self.IP.add_class)
+        self.UI.action_Select_Polygon.triggered.connect(self.IP.change_paint_mode)
         self.UI.FuncBtn1.clicked.connect(lambda: self.IP.change_image(max(self.IP.FM.index - 1, 0)))
         self.UI.FuncBtn2.clicked.connect(
             lambda: self.IP.change_image(min(self.IP.FM.index + 1, len(self.IP.FM.image_list) - 1)))
@@ -65,6 +66,7 @@ class MaskEditor:
         self.IP.change_image(self.IP.FM.index)
         # 產生筆刷游標
         self.UI.BrushSizeSlider.setValue(self.IP.brush_size)
+        self.IP.gen_brush()
         ##
 
 
