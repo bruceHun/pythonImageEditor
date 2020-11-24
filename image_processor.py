@@ -2,10 +2,9 @@ from dataclasses import dataclass
 import configparser
 import os
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QGraphicsView, QDialog, \
-    QGraphicsPolygonItem, QGraphicsLineItem
-from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, QKeyEvent, \
-    QWheelEvent, QPolygon, QTransform, QPolygonF, QPainterPath
+from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem
+from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
+    QKeyEvent, QWheelEvent, QPolygon, QTransform, QPolygonF, QPainterPath
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
@@ -204,12 +203,14 @@ class ImageProcessor:
             delta *= self.scroll_speed
             value = self.UI.graphicsView.verticalScrollBar().value() + delta.y()
             self.UI.graphicsView.verticalScrollBar().setValue(value)
-        # Update cursor position
-        r = int(self.brush_size / 2)
-        curr_pos = self.UI.graphicsView.mapToScene(e.pos())
-        curr_pos.setX(curr_pos.x() - r)
-        curr_pos.setY(curr_pos.y() - r)
-        self.brush_cursor.setPos(curr_pos)
+
+        if self.paint_mode == PMode.Brush:
+            # Update cursor position
+            r = int(self.brush_size / 2)
+            curr_pos = self.UI.graphicsView.mapToScene(e.pos())
+            curr_pos.setX(curr_pos.x() - r)
+            curr_pos.setY(curr_pos.y() - r)
+            self.brush_cursor.setPos(curr_pos)
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
@@ -235,7 +236,6 @@ class ImageProcessor:
             # self.ui.centralwidget.update()
         elif self.paint_mode == PMode.Select:
             self.selections_pnt.append(curr_pos)
-            print(f'Num of Points: {len(self.selections_pnt)}')
             if self.display_sel is not None:
                 self.scene.removeItem(self.display_sel)
             my_path = QPainterPath()
@@ -270,17 +270,14 @@ class ImageProcessor:
                 # self.ui.centralwidget.update()
                 self.update_mask()
             elif self.paint_mode == PMode.Select:
-                # self.painter.setCompositionMode(QPainter.CompositionMode_Source)
-                # self.selection_layer.fill(self.colors.BLANK)
                 top = len(self.selections_pnt) - 1
                 ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
                 if self.display_line is not None:
                     self.scene.removeItem(self.display_line)
                 self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(), QPen(Qt.yellow, 5))
-                # self.painter.drawLine(ax, ay, mappos.x(), mappos.y())
-                # self.display_sel.setPixmap(self.selection_layer)
 
-        self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
+        if self.paint_mode == PMode.Brush:
+            self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
 
     # 調整顯示大小
     def scale_display(self, value: float):
@@ -441,9 +438,10 @@ class ImageProcessor:
 
     # 改變筆刷大小
     def change_brush_size(self):
-        value = self.UI.BrushSizeSlider.value()
-        self.brush_size = value
-        self.gen_brush()
+        if self.paint_mode == PMode.Brush:
+            value = self.UI.BrushSizeSlider.value()
+            self.brush_size = value
+            self.gen_brush()
 
     # 改變筆刷顏色
     def change_brush_color(self, index: int):
@@ -567,6 +565,8 @@ class ImageProcessor:
     def change_paint_mode(self):
         if self.UI.action_Select_Polygon.isChecked():
             self.paint_mode = PMode.Select
+            self.brush_cursor.hide()
         else:
             self.paint_mode = PMode.Brush
+            self.brush_cursor.show()
 

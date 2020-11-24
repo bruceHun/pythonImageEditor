@@ -15,16 +15,17 @@ class BufferItem:
         if new_index == self.index:
             return
         self.index = new_index
-        self.data.append(pixmap.copy())
+        pm = pixmap.copy()
+        self.data.append(pm)
         print(f'push index: {self.index}, buffer_size: {len(self.data)}')
 
     def peek(self) -> QPixmap:
-        return self.data[self.index]
+        return self.data[self.index].copy()
 
     def prev(self) -> QPixmap:
         self.index = max(self.index - 1, 0)
         print(f'back to {self.index}, buffer_size: {len(self.data)}')
-        return self.data[self.index]
+        return self.data[self.index].copy()
 
     def next(self) -> QPixmap:
         self.index = min(self.index + 1, len(self.data) - 1)
@@ -59,7 +60,10 @@ class ImageBufferManager:
 
     # 清空 Buffer
     def renew_buffer(self, init_data: dict = None):
+        for buffer in self.pix_buffers.values():
+            buffer.data.clear()
         self.pix_buffers.clear()
+        print(self.pix_buffers)
         if init_data is not None:
             for key, val in init_data.items():
                 try:
