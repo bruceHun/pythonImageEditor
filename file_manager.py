@@ -68,8 +68,9 @@ def add_regions(_regions: list, contours: list, cid: list, typename: str):
 
 
 def add_annotation(filename: str, filesize: int, file: dict) -> list:
-    file[filename] = {}
-    root = file[filename]
+    a_name = f'{filename}{filesize}'
+    file[a_name] = {}
+    root = file[a_name]
     root["filename"] = filename
     root["size"] = filesize
     root["regions"] = []
@@ -111,7 +112,7 @@ class FileManager:
                 fsize = self.annotations[fname]['size']
             except KeyError:
                 fsize = os.path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
-            fname = f'{fname}{fsize}'
+            # fname = f'{fname}{fsize}'
             # 創建圖片資訊
             r = add_annotation(fname, fsize, self.annotations)
             # 加入區域
