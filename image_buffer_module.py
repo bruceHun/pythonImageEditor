@@ -9,11 +9,13 @@ class BufferItem:
     index: int = -1
 
     def push(self, pixmap: QPixmap):
+        # 在中間插入
         if self.index < (len(self.data) - 1):
             del self.data[self.index + 1:]
         new_index = min(self.index + 1, MAX_BUFFER_SIZE)
+        # 超過上限，從 buffer 移除最舊的一筆
         if new_index == self.index:
-            return
+            self.data.pop(0)
         self.index = new_index
         pm = pixmap.copy()
         self.data.append(pm)
@@ -30,7 +32,7 @@ class BufferItem:
     def next(self) -> QPixmap:
         self.index = min(self.index + 1, len(self.data) - 1)
         # print(f'forward to {self.index}, buffer_size: {len(self.data)}')
-        return self.data[self.index]
+        return self.data[self.index].copy()
 
 
 class ImageBufferManager:

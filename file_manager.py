@@ -1,9 +1,8 @@
-import os
+from os import path as os_path, remove as os_remove, listdir as os_listdir
 import json
-from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_TC89_L1, CHAIN_APPROX_SIMPLE
+from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_SIMPLE
 import numpy as np
 from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter
 
 lows: np.array = np.array([[128, 0, 0, 255],
@@ -89,7 +88,7 @@ class FileManager:
         self.dialog_root = QDialog()
 
     def get_file_lists(self):
-        for file in os.listdir(self.image_dir):
+        for file in os_listdir(self.image_dir):
             f_lower = file.lower()
             if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
                 self.image_list.append(file)
@@ -111,7 +110,7 @@ class FileManager:
             try:
                 fsize = self.annotations[fname]['size']
             except KeyError:
-                fsize = os.path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
+                fsize = os_path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
             # fname = f'{fname}{fsize}'
             # 創建圖片資訊
             r = add_annotation(fname, fsize, self.annotations)
@@ -162,7 +161,7 @@ class FileManager:
     # 刪除遮罩圖片
     def delete_mask(self):
         path = f'{self.image_dir}/{self.image_list[self.index]}_mask.tif'
-        image_exist = os.path.isfile(path)
+        image_exist = os_path.isfile(path)
         if not image_exist:
             return 4
         result = QMessageBox.question(self.dialog_root,
@@ -171,5 +170,5 @@ class FileManager:
                                       f'{self.image_list[self.index]}_mask.tif',
                                       QMessageBox.Yes | QMessageBox.No)
         if result == QMessageBox.Yes:
-            os.remove(path)
+            os_remove(path)
 

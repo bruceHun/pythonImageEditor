@@ -1,7 +1,8 @@
+from PyQt5.QtWidgets import QMessageBox
+
 from mainwindow import Ui_MainWindow
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtCore
 from image_processor import ImageProcessor
-from urllib import request
 
 
 class MaskEditor:
@@ -71,11 +72,6 @@ class MaskEditor:
         self.UI.BrushSizeSlider.setValue(self.IP.brush_size)
         self.IP.gen_brush()
         ##
-        url = ''
-        r = request.urlretrieve(url, 'ver.txt')
-        with open('ver.txt', 'r') as curr_version:
-            version = curr_version.read()
-            print(version)
 
 
 if __name__ == "__main__":

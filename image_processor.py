@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-import configparser
-import os
-from PyQt5.QtCore import QPoint, Qt
+from configparser import ConfigParser
+from os import path as os_path
+from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
-    QKeyEvent, QWheelEvent, QPolygon, QTransform, QPolygonF, QPainterPath
+    QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
@@ -80,7 +80,7 @@ class ImageProcessor:
     UI: Ui_MainWindow = None
     main_window: QMainWindow = None
     # 設定檔解析器
-    config: configparser = None
+    config: ConfigParser = None
 
     def __init__(self):
         self.FM = FileManager()
@@ -101,7 +101,7 @@ class ImageProcessor:
         try:
             settings = open("settings.ini", "r")
             settings.close()
-            self.config = configparser.ConfigParser()
+            self.config = ConfigParser()
             self.config.optionxform = str
             self.config.read("settings.ini")
         except FileNotFoundError:
@@ -109,7 +109,7 @@ class ImageProcessor:
                 self.FM.image_dir = get_directory()
             if self.FM.image_dir == "":
                 self.FM.image_dir = "./"
-            self.config = configparser.ConfigParser()
+            self.config = ConfigParser()
             self.config.optionxform = str
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
@@ -243,7 +243,7 @@ class ImageProcessor:
             my_path.addPolygon(QPolygonF(self.selections_pnt))
             my_path.closeSubpath()
             pt = QPainter(self.selection_layer)
-            pt.setPen(QPen(Qt.yellow, 5))
+            pt.setPen(QPen(QColor(255, 255, 0, 255), 5))
             pt.drawPath(my_path)
             self.display_sel = self.scene.addPixmap(self.selection_layer)
 
@@ -274,7 +274,7 @@ class ImageProcessor:
                 ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
                 if self.display_line is not None:
                     self.scene.removeItem(self.display_line)
-                self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(), QPen(Qt.yellow, 5))
+                self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(), QPen(QColor(255, 255, 0, 255), 5))
 
         if self.paint_mode == PMode.Brush:
             self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
@@ -349,7 +349,7 @@ class ImageProcessor:
         if len(self.FM.annotations) > 0:
             try:
                 f_name = self.FM.image_list[_index]
-                f_size = os.path.getsize(f'{self.FM.image_dir}/{f_name}')
+                f_size = os_path.getsize(f'{self.FM.image_dir}/{f_name}')
                 f_name = f'{f_name}{f_size}'
                 a = self.FM.annotations[f_name]
                 self.UI.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
