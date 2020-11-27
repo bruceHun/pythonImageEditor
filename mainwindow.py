@@ -203,7 +203,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 961, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 961, 21))
         self.menubar.setStyleSheet("color: rgb(255, 255, 255);\n"
 "selection-color: rgb(255, 170, 0);")
         self.menubar.setObjectName("menubar")
@@ -214,6 +214,8 @@ class Ui_MainWindow(object):
         self.menu_Edit.setObjectName("menu_Edit")
         self.menu_Help = QtWidgets.QMenu(self.menubar)
         self.menu_Help.setObjectName("menu_Help")
+        self.menu_View_2 = QtWidgets.QMenu(self.menubar)
+        self.menu_View_2.setObjectName("menu_View_2")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
         self.statusbar.setStyleSheet("color: rgb(254, 204, 9);")
@@ -242,6 +244,9 @@ class Ui_MainWindow(object):
         self.action_Select_Polygon = QtWidgets.QAction(MainWindow)
         self.action_Select_Polygon.setCheckable(True)
         self.action_Select_Polygon.setObjectName("action_Select_Polygon")
+        self.action_Show_annotated = QtWidgets.QAction(MainWindow)
+        self.action_Show_annotated.setCheckable(True)
+        self.action_Show_annotated.setObjectName("action_Show_annotated")
         self.menu_File.addAction(self.action_Open)
         self.menu_File.addAction(self.action_Save)
         self.menu_File.addSeparator()
@@ -256,10 +261,13 @@ class Ui_MainWindow(object):
         self.menu_Edit.addAction(self.action_Delete)
         self.menu_Edit.addSeparator()
         self.menu_Edit.addAction(self.action_Add_Class)
+        self.menu_Edit.addSeparator()
         self.menu_Edit.addAction(self.action_Select_Polygon)
         self.menu_Help.addAction(self.actionI_m_working_on_it)
+        self.menu_View_2.addAction(self.action_Show_annotated)
         self.menubar.addAction(self.menu_File.menuAction())
         self.menubar.addAction(self.menu_Edit.menuAction())
+        self.menubar.addAction(self.menu_View_2.menuAction())
         self.menubar.addAction(self.menu_Help.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -280,6 +288,7 @@ class Ui_MainWindow(object):
         self.menu_File.setTitle(_translate("MainWindow", "&File"))
         self.menu_Edit.setTitle(_translate("MainWindow", "&Edit"))
         self.menu_Help.setTitle(_translate("MainWindow", "&Help"))
+        self.menu_View_2.setTitle(_translate("MainWindow", "&View"))
         self.action_Open.setText(_translate("MainWindow", "&Open"))
         self.action_Open.setShortcut(_translate("MainWindow", "Ctrl+O"))
         self.action_Settings.setText(_translate("MainWindow", "Settings"))
@@ -296,6 +305,7 @@ class Ui_MainWindow(object):
         self.action_Add_Class.setText(_translate("MainWindow", "&Add Class"))
         self.action_Export_to_Mask.setText(_translate("MainWindow", "&Export to Mask"))
         self.action_Select_Polygon.setText(_translate("MainWindow", "&Select Polygon"))
+        self.action_Show_annotated.setText(_translate("MainWindow", "Show &annotated"))
 
 
 if __name__ == "__main__":

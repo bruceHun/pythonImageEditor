@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from configparser import ConfigParser
+from configparser import ConfigParser, NoOptionError
 from os import path as os_path
 from PyQt5.QtCore import QPoint
-from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem
+from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem, \
+    QMessageBox
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
     QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath
 from PyQt5 import QtCore
@@ -87,64 +88,76 @@ class ImageProcessor:
         self.BM = ImageBufferManager()
         self.selection_layer = QPixmap()
 
-    def init(self, is_running: bool = False):
-        if is_running:
+    def init(self, is_running: bool = False, show_annotated_switch: bool = False):
+        if is_running and not show_annotated_switch:
             directory = get_directory()
             if directory == "":
                 return
             else:
                 self.FM.image_dir = directory
+                print(self.FM.image_dir)
                 self.FM.image_list.clear()
                 self.UI.listWidget.clear()
+        if show_annotated_switch:
+            self.FM.image_list.clear()
+            self.UI.listWidget.clear()
 
         # 開啟設定檔
+        self.config = ConfigParser()
+        self.config.optionxform = str
         try:
             settings = open("settings.ini", "r")
             settings.close()
-            self.config = ConfigParser()
-            self.config.optionxform = str
             self.config.read("settings.ini")
         except FileNotFoundError:
             if not is_running:
                 self.FM.image_dir = get_directory()
             if self.FM.image_dir == "":
                 self.FM.image_dir = "./"
-            self.config = ConfigParser()
-            self.config.optionxform = str
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
                                               'DefaultClass': 'object',
                                               'ZoomScale': '0.1',
                                               'ZoomMaxScale': '5',
-                                              'InvertScroll': 'False'}
+                                              'InvertScroll': 'False'
+                                              }
             self.config["WorkingState"] = {'WorkingImg': '0',
                                            'BrushSize': '300',
-                                           'Erasemode': '1'
+                                           'Erasemode': 0,
+                                           'ShowAnnotated': 0
                                            }
             with open('settings.ini', 'w') as file:
                 self.config.write(file)
 
-        # 載入新目錄時套用預設工作階段設定
-        if is_running:
+        success = True
+        try:
+            if not is_running:
+                self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
+                self.default_class = self.config.get('GeneralSettings', 'DefaultClass')
+                self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
+                self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
+                self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
+                self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
+                self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
+                self.erase_mode = bool(int(self.config.get('WorkingState', 'Erasemode')))
+            if not show_annotated_switch:
+                self.UI.action_Show_annotated.setChecked(int(self.config.get('WorkingState', 'ShowAnnotated')))
+        except NoOptionError:
+            success = False
+
+        # 載入新目錄或讀取錯誤時套用預設工作階段設定
+        if is_running or not success:
             self.zoom_scale = 0.1
             self.zoom_max = 5
             self.FM.index = 0
             self.brush_size = 300
             self.erase_mode = True
             self.scroll_speed = -5
-        else:
-            self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
-            self.default_class = self.config.get('GeneralSettings', 'DefaultClass')
-            self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
-            self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
-            self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
-            self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
-            self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
-            self.erase_mode = bool(self.config.get('WorkingState', 'Erasemode'))
+
         self.label_color = self.colors.FUCHSIA
 
         # 列出圖片檔名
-        self.FM.get_file_lists()
+        self.FM.get_file_lists(self.UI.action_Show_annotated.isChecked())
         if is_running:
             self.UI.listWidget.addItems(self.FM.image_list)
             self.change_image(0)
@@ -274,7 +287,8 @@ class ImageProcessor:
                 ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
                 if self.display_line is not None:
                     self.scene.removeItem(self.display_line)
-                self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(), QPen(QColor(255, 255, 0, 255), 5))
+                self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(),
+                                                       QPen(QColor(255, 255, 0, 255), 5))
 
         if self.paint_mode == PMode.Brush:
             self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
@@ -355,7 +369,7 @@ class ImageProcessor:
                 self.UI.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
                 # polygons = [r['shape_attributes'] for r in a['regions']]
 
-                labelcolors = [
+                label_colors = [
                     self.colors.RED,
                     self.colors.GREEN,
                     self.colors.BLUE,
@@ -373,9 +387,9 @@ class ImageProcessor:
                         area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
 
                     try:
-                        paint_color = labelcolors[nameref[r['region_attributes']['Color']]]
+                        paint_color = label_colors[nameref[r['region_attributes']['Color']]]
                     except KeyError:
-                        paint_color = labelcolors[cidx]
+                        paint_color = label_colors[cidx]
                         cidx = (cidx + 1) % 6
 
                     classname = r['region_attributes']['Name']
@@ -512,7 +526,8 @@ class ImageProcessor:
                                           'InvertScroll': 'False' if self.scroll_speed < 0 else 'True'}
         self.config["WorkingState"] = {'WorkingImg': str(self.FM.index),
                                        'BrushSize': str(self.brush_size),
-                                       'Erasemode': str(int(self.erase_mode))
+                                       'Erasemode': int(self.erase_mode),
+                                       'ShowAnnotated': int(self.UI.action_Show_annotated.isChecked())
                                        }
         with open('settings.ini', 'w') as file:
             self.config.write(file)
@@ -556,9 +571,18 @@ class ImageProcessor:
         ui.label.setText('Please enter the name of the new class')
         res = dialog_line_edit.exec()
 
-        if res == QDialog.Accepted and ui.lineEdit.text() != "":
+        newclass = ui.lineEdit.text().replace(" ", "")
+
+        if res == QDialog.Accepted and newclass != "":
+            if self.UI.comboBox.findText(newclass) != -1:
+                QMessageBox.about(self.FM.dialog_root,
+                                  "Redefining class",
+                                  f'Class "{newclass}" already exists'
+                                  )
+                return
+
             blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
-            newclass = ui.lineEdit.text().replace(" ", "")
+
             self.pixmap_mask[newclass] = QPixmap(blank)
             self.UI.comboBox.addItem(newclass)
 
@@ -569,4 +593,3 @@ class ImageProcessor:
         else:
             self.paint_mode = PMode.Brush
             self.brush_cursor.show()
-

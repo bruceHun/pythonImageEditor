@@ -38,6 +38,7 @@ class MaskEditor:
         self.IP.scene = QtWidgets.QGraphicsScene()
         self.UI.graphicsView.setScene(self.IP.scene)
         # 連結 UI 功能
+        # 功能表
         self.UI.action_Open.triggered.connect(lambda: self.IP.init(True))
         self.UI.action_Export_to_Mask.triggered.connect(self.IP.save_mask)
         self.UI.action_Save.triggered.connect(self.IP.refresh_masks)
@@ -48,14 +49,19 @@ class MaskEditor:
         self.UI.action_Delete.triggered.connect(self.IP.delete_mask)
         self.UI.action_Add_Class.triggered.connect(self.IP.add_class)
         self.UI.action_Select_Polygon.triggered.connect(self.IP.change_paint_mode)
+        self.UI.action_Show_annotated.triggered.connect(lambda: self.IP.init(is_running=True, show_annotated_switch=True))
+        # 功能按鈕
         self.UI.FuncBtn1.clicked.connect(lambda: self.IP.change_image(max(self.IP.FM.index - 1, 0)))
         self.UI.FuncBtn2.clicked.connect(
             lambda: self.IP.change_image(min(self.IP.FM.index + 1, len(self.IP.FM.image_list) - 1)))
         self.UI.FuncBtn5.clicked.connect(lambda: self.IP.scale_display(self.IP.zoom_scale))
         self.UI.FuncBtn6.clicked.connect(lambda: self.IP.scale_display(-self.IP.zoom_scale))
+        # 檔案清單
         self.UI.listWidget.itemClicked.connect(lambda: self.IP.change_image(self.UI.listWidget.currentRow()))
+        # 滑條
         self.UI.BrushSizeSlider.valueChanged.connect(self.IP.change_brush_size)
         self.UI.brightnessSlider.valueChanged.connect(self.IP.change_photo_brightness)
+        # 顏色按鈕
         self.UI.ColorBtn1.clicked.connect(lambda: self.IP.change_brush_color(0))
         self.UI.ColorBtn2.clicked.connect(lambda: self.IP.change_brush_color(1))
         self.UI.ColorBtn3.clicked.connect(lambda: self.IP.change_brush_color(2))

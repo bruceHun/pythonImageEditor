@@ -77,25 +77,29 @@ def add_annotation(filename: str, filesize: int, file: dict) -> list:
 
 
 class FileManager:
-    image_list = []
-    via_fname = ''
-    annotations = {}
-    image_dir = './'
-    index = -1
+    image_list: list = []
+    via_fname: str = ''
+    annotations: dict = {}
+    image_dir: str = './'
+    index: int = -1
     dialog_root: QDialog = None
 
     def __init__(self):
         self.dialog_root = QDialog()
 
-    def get_file_lists(self):
+    def get_file_lists(self, show_annotated_only: bool = False):
         for file in os_listdir(self.image_dir):
             f_lower = file.lower()
-            if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
-                self.image_list.append(file)
-            elif f_lower.endswith('.json'):
+            if f_lower.endswith('.json'):
                 self.via_fname = f'{self.image_dir}/{file}'
                 with open(self.via_fname, 'r') as json_file:
                     self.annotations = json.load(json_file)
+                if show_annotated_only:
+                    for key, val in self.annotations.items():
+                        self.image_list.append(val['filename'])
+            if not show_annotated_only:
+                if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
+                    self.image_list.append(file)
 
     def save_annotation(self, pixmap: dict):
         result = QMessageBox.question(self.dialog_root,

@@ -6,12 +6,14 @@
 ```ini
 [GeneralSettings]
 ImageDir = ./
-ZoomScale = 0.06
-ZoomMaxScale = 2.0
-ZoomMinScale = 0.1
+DefaultClass = object
+ZoomScale = 0.1
+ZoomMaxScale = 5.0
+InvertScroll = False
 
 [WorkingState]
-Workingimg = 2
-Brushsize = 300
-Erasemode = 1
+WorkingImg = 0
+BrushSize = 300
+Erasemode = 0
+ShowAnnotated = 1
 ```
