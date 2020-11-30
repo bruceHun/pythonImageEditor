@@ -17,11 +17,17 @@ class Ui_MainWindow(object):
         MainWindow.resize(961, 533)
         MainWindow.setStyleSheet("background-color: rgb(60, 60, 60);")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setStyleSheet("")
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
         self.gridLayout.setObjectName("gridLayout")
         self.SideBar = QtWidgets.QVBoxLayout()
         self.SideBar.setObjectName("SideBar")
+        self.NumOfImageslabel = QtWidgets.QLabel(self.centralwidget)
+        self.NumOfImageslabel.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
+        self.NumOfImageslabel.setObjectName("NumOfImageslabel")
+        self.SideBar.addWidget(self.NumOfImageslabel)
         self.listWidget = QtWidgets.QListWidget(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -29,10 +35,12 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.listWidget.sizePolicy().hasHeightForWidth())
         self.listWidget.setSizePolicy(sizePolicy)
         self.listWidget.setMinimumSize(QtCore.QSize(200, 0))
-        self.listWidget.setStyleSheet("color: rgb(255, 255, 255);\n"
-"alternate-background-color: rgb(255, 170, 0);\n"
-"selection-color: rgb(255, 170, 0);\n"
-"background-color: rgb(22, 22, 22);")
+        self.listWidget.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.listWidget.setAutoFillBackground(False)
+        self.listWidget.setStyleSheet("background-color: rgb(200, 200, 200);")
+        self.listWidget.setAlternatingRowColors(False)
+        self.listWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectItems)
+        self.listWidget.setSelectionRectVisible(False)
         self.listWidget.setObjectName("listWidget")
         self.SideBar.addWidget(self.listWidget)
         self.formLayout_2 = QtWidgets.QFormLayout()
@@ -44,7 +52,8 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.labelBrushSize.sizePolicy().hasHeightForWidth())
         self.labelBrushSize.setSizePolicy(sizePolicy)
         self.labelBrushSize.setMinimumSize(QtCore.QSize(80, 0))
-        self.labelBrushSize.setStyleSheet("color: rgb(255, 255, 255);")
+        self.labelBrushSize.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.labelBrushSize.setObjectName("labelBrushSize")
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.labelBrushSize)
         self.BrushSizeSlider = QtWidgets.QSlider(self.centralwidget)
@@ -60,11 +69,13 @@ class Ui_MainWindow(object):
         self.BrushSizeSlider.setObjectName("BrushSizeSlider")
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.BrushSizeSlider)
         self.labelCurrClass = QtWidgets.QLabel(self.centralwidget)
-        self.labelCurrClass.setStyleSheet("color: rgb(255, 255, 255);")
+        self.labelCurrClass.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.labelCurrClass.setObjectName("labelCurrClass")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.labelCurrClass)
         self.comboBox = QtWidgets.QComboBox(self.centralwidget)
-        self.comboBox.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.comboBox.setStyleSheet("background-color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.comboBox.setObjectName("comboBox")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.comboBox)
         self.Brightnesslabel = QtWidgets.QLabel(self.centralwidget)
@@ -74,7 +85,8 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.Brightnesslabel.sizePolicy().hasHeightForWidth())
         self.Brightnesslabel.setSizePolicy(sizePolicy)
         self.Brightnesslabel.setMinimumSize(QtCore.QSize(80, 0))
-        self.Brightnesslabel.setStyleSheet("color: rgb(255, 255, 255);")
+        self.Brightnesslabel.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.Brightnesslabel.setObjectName("Brightnesslabel")
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.Brightnesslabel)
         self.brightnessSlider = QtWidgets.QSlider(self.centralwidget)
@@ -90,11 +102,9 @@ class Ui_MainWindow(object):
         self.SideBar.addLayout(self.ImageBrightnessPanel)
         self.BrushColorPanel = QtWidgets.QGridLayout()
         self.BrushColorPanel.setObjectName("BrushColorPanel")
-        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.BrushColorPanel.addLayout(self.horizontalLayout_2, 1, 0, 1, 1)
         self.ColorBtn1 = QtWidgets.QPushButton(self.centralwidget)
-        self.ColorBtn1.setStyleSheet("background-color: rgb(252, 0, 0);")
+        self.ColorBtn1.setStyleSheet("background-color: rgb(252, 0, 0);\n"
+"selection-background-color: rgb(0, 0, 255);")
         self.ColorBtn1.setText("")
         self.ColorBtn1.setObjectName("ColorBtn1")
         self.BrushColorPanel.addWidget(self.ColorBtn1, 0, 1, 1, 1)
@@ -104,7 +114,10 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.labelBrushColor.sizePolicy().hasHeightForWidth())
         self.labelBrushColor.setSizePolicy(sizePolicy)
-        self.labelBrushColor.setStyleSheet("color: rgb(255, 255, 255);")
+        self.labelBrushColor.setMinimumSize(QtCore.QSize(80, 0))
+        self.labelBrushColor.setMaximumSize(QtCore.QSize(80, 16777215))
+        self.labelBrushColor.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.labelBrushColor.setObjectName("labelBrushColor")
         self.BrushColorPanel.addWidget(self.labelBrushColor, 0, 0, 1, 1)
         self.ColorBtn2 = QtWidgets.QPushButton(self.centralwidget)
@@ -133,10 +146,17 @@ class Ui_MainWindow(object):
         self.ColorBtn4.setObjectName("ColorBtn4")
         self.BrushColorPanel.addWidget(self.ColorBtn4, 1, 1, 1, 1)
         self.SideBar.addLayout(self.BrushColorPanel)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem = QtWidgets.QSpacerItem(85, 20, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
         self.EraserBtn = QtWidgets.QPushButton(self.centralwidget)
-        self.EraserBtn.setStyleSheet("background-color: rgb(255, 255, 255);")
+        self.EraserBtn.setStyleSheet("background-color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";")
         self.EraserBtn.setObjectName("EraserBtn")
-        self.SideBar.addWidget(self.EraserBtn)
+        self.horizontalLayout.addWidget(self.EraserBtn)
+        self.SideBar.addLayout(self.horizontalLayout)
         self.gridLayout.addLayout(self.SideBar, 0, 1, 2, 1)
         self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
@@ -145,6 +165,7 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.graphicsView.sizePolicy().hasHeightForWidth())
         self.graphicsView.setSizePolicy(sizePolicy)
         self.graphicsView.setSizeIncrement(QtCore.QSize(0, 0))
+        self.graphicsView.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.graphicsView.setMouseTracking(True)
         self.graphicsView.setStyleSheet("background-color: rgb(0, 0, 0);")
         self.graphicsView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
@@ -160,7 +181,10 @@ class Ui_MainWindow(object):
         self.FuncBtn1.setSizePolicy(sizePolicy)
         self.FuncBtn1.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn1.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.FuncBtn1.setMouseTracking(False)
         self.FuncBtn1.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
 "background-color: rgb(90, 90, 90);")
         self.FuncBtn1.setObjectName("FuncBtn1")
         self.MainScreen.addWidget(self.FuncBtn1)
@@ -173,6 +197,8 @@ class Ui_MainWindow(object):
         self.FuncBtn2.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn2.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn2.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
 "background-color: rgb(90, 90, 90);")
         self.FuncBtn2.setObjectName("FuncBtn2")
         self.MainScreen.addWidget(self.FuncBtn2)
@@ -185,6 +211,8 @@ class Ui_MainWindow(object):
         self.FuncBtn5.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn5.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn5.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
 "background-color: rgb(90, 90, 90);")
         self.FuncBtn5.setObjectName("FuncBtn5")
         self.MainScreen.addWidget(self.FuncBtn5)
@@ -197,13 +225,15 @@ class Ui_MainWindow(object):
         self.FuncBtn6.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn6.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn6.setStyleSheet("color: rgb(255, 255, 255);\n"
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
 "background-color: rgb(90, 90, 90);")
         self.FuncBtn6.setObjectName("FuncBtn6")
         self.MainScreen.addWidget(self.FuncBtn6)
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 961, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 961, 25))
         self.menubar.setStyleSheet("color: rgb(255, 255, 255);\n"
 "selection-color: rgb(255, 170, 0);")
         self.menubar.setObjectName("menubar")
@@ -276,13 +306,14 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Mask Editor"))
+        self.NumOfImageslabel.setText(_translate("MainWindow", "TextLabel"))
         self.labelBrushSize.setText(_translate("MainWindow", "Brush Size"))
         self.labelCurrClass.setText(_translate("MainWindow", "Working Class"))
         self.Brightnesslabel.setText(_translate("MainWindow", "Brightness"))
         self.labelBrushColor.setText(_translate("MainWindow", "Brush Color"))
         self.EraserBtn.setText(_translate("MainWindow", "Eraser"))
-        self.FuncBtn1.setText(_translate("MainWindow", "<<"))
-        self.FuncBtn2.setText(_translate("MainWindow", ">>"))
+        self.FuncBtn1.setText(_translate("MainWindow", "PREV"))
+        self.FuncBtn2.setText(_translate("MainWindow", "NEXT"))
         self.FuncBtn5.setText(_translate("MainWindow", "+"))
         self.FuncBtn6.setText(_translate("MainWindow", "-"))
         self.menu_File.setTitle(_translate("MainWindow", "&File"))

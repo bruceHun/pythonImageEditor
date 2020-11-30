@@ -17,9 +17,23 @@
    <string notr="true">background-color: rgb(60, 60, 60);</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="1" rowspan="2">
      <layout class="QVBoxLayout" name="SideBar">
+      <item>
+       <widget class="QLabel" name="NumOfImageslabel">
+        <property name="styleSheet">
+         <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QListWidget" name="listWidget">
         <property name="sizePolicy">
@@ -34,11 +48,23 @@
           <height>0</height>
          </size>
         </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>ArrowCursor</cursorShape>
+        </property>
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
         <property name="styleSheet">
-         <string notr="true">color: rgb(255, 255, 255);
-alternate-background-color: rgb(255, 170, 0);
-selection-color: rgb(255, 170, 0);
-background-color: rgb(22, 22, 22);</string>
+         <string notr="true">background-color: rgb(200, 200, 200);</string>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>false</bool>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectItems</enum>
+        </property>
+        <property name="selectionRectVisible">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -59,7 +85,8 @@ background-color: rgb(22, 22, 22);</string>
            </size>
           </property>
           <property name="styleSheet">
-           <string notr="true">color: rgb(255, 255, 255);</string>
+           <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
           </property>
           <property name="text">
            <string>Brush Size</string>
@@ -94,7 +121,8 @@ background-color: rgb(22, 22, 22);</string>
         <item row="0" column="0">
          <widget class="QLabel" name="labelCurrClass">
           <property name="styleSheet">
-           <string notr="true">color: rgb(255, 255, 255);</string>
+           <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
           </property>
           <property name="text">
            <string>Working Class</string>
@@ -104,7 +132,8 @@ background-color: rgb(22, 22, 22);</string>
         <item row="0" column="1">
          <widget class="QComboBox" name="comboBox">
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(255, 255, 255);</string>
+           <string notr="true">background-color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
@@ -123,7 +152,8 @@ background-color: rgb(22, 22, 22);</string>
            </size>
           </property>
           <property name="styleSheet">
-           <string notr="true">color: rgb(255, 255, 255);</string>
+           <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
           </property>
           <property name="text">
            <string>Brightness</string>
@@ -153,13 +183,11 @@ background-color: rgb(22, 22, 22);</string>
       </item>
       <item>
        <layout class="QGridLayout" name="BrushColorPanel">
-        <item row="1" column="0">
-         <layout class="QHBoxLayout" name="horizontalLayout_2"/>
-        </item>
         <item row="0" column="1">
          <widget class="QPushButton" name="ColorBtn1">
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(252, 0, 0);</string>
+           <string notr="true">background-color: rgb(252, 0, 0);
+selection-background-color: rgb(0, 0, 255);</string>
           </property>
           <property name="text">
            <string/>
@@ -174,8 +202,21 @@ background-color: rgb(22, 22, 22);</string>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>80</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="styleSheet">
-           <string notr="true">color: rgb(255, 255, 255);</string>
+           <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
           </property>
           <property name="text">
            <string>Brush Color</string>
@@ -235,14 +276,38 @@ background-color: rgb(22, 22, 22);</string>
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="EraserBtn">
-        <property name="styleSheet">
-         <string notr="true">background-color: rgb(255, 255, 255);</string>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetFixedSize</enum>
         </property>
-        <property name="text">
-         <string>Eraser</string>
-        </property>
-       </widget>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>85</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="EraserBtn">
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
+          </property>
+          <property name="text">
+           <string>Eraser</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -259,6 +324,9 @@ background-color: rgb(22, 22, 22);</string>
         <width>0</width>
         <height>0</height>
        </size>
+      </property>
+      <property name="cursor" stdset="0">
+       <cursorShape>CrossCursor</cursorShape>
       </property>
       <property name="mouseTracking">
        <bool>true</bool>
@@ -293,12 +361,17 @@ background-color: rgb(22, 22, 22);</string>
           <height>16777215</height>
          </size>
         </property>
+        <property name="mouseTracking">
+         <bool>false</bool>
+        </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;
+selection-color: rgb(255, 170, 0);
 background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="text">
-         <string>&lt;&lt;</string>
+         <string>PREV</string>
         </property>
        </widget>
       </item>
@@ -324,10 +397,12 @@ background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;
+selection-color: rgb(255, 170, 0);
 background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="text">
-         <string>&gt;&gt;</string>
+         <string>NEXT</string>
         </property>
        </widget>
       </item>
@@ -353,6 +428,8 @@ background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;
+selection-color: rgb(255, 170, 0);
 background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="text">
@@ -382,6 +459,8 @@ background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;
+selection-color: rgb(255, 170, 0);
 background-color: rgb(90, 90, 90);</string>
         </property>
         <property name="text">
@@ -399,7 +478,7 @@ background-color: rgb(90, 90, 90);</string>
      <x>0</x>
      <y>0</y>
      <width>961</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <property name="styleSheet">

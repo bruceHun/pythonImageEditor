@@ -3,7 +3,7 @@ from configparser import ConfigParser, NoOptionError
 from os import path as os_path
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem, \
-    QMessageBox
+    QMessageBox, QGraphicsPathItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
     QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath
 from PyQt5 import QtCore
@@ -38,6 +38,15 @@ class Colors:
     WHITE = QColor(255, 255, 255, 255)
 
 
+label_colors = [
+                    Colors.RED,
+                    Colors.GREEN,
+                    Colors.BLUE,
+                    Colors.YELLOW,
+                    Colors.FUCHSIA,
+                    Colors.AQUA
+                ]
+nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5}
 MOD_MASK = (QtCore.Qt.CTRL | QtCore.Qt.ALT | QtCore.Qt.SHIFT | QtCore.Qt.META)
 
 
@@ -54,7 +63,7 @@ class ImageProcessor:
     default_class = 'object'
     pixmap_brush: QPixmap = None
     display_img: QGraphicsPixmapItem = None
-    display_sel: QGraphicsPixmapItem = None
+    display_sel: QGraphicsPathItem = None
     display_line: QGraphicsLineItem = None
     display_mask = {}
     scene: QGraphicsScene = None
@@ -161,15 +170,21 @@ class ImageProcessor:
         if is_running:
             self.UI.listWidget.addItems(self.FM.image_list)
             self.change_image(0)
+        num_of_images = len(self.FM.image_list)
+        self.UI.NumOfImageslabel.setText(f' {num_of_images} item{"" if num_of_images == 1 else "s"}')
 
     def key_event(self, e: QKeyEvent):
         key = e.key()
-        if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_BracketRight:
+        if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_Equal:
             self.scale_display(self.zoom_scale)
-        elif key == QtCore.Qt.Key_Minus or key == QtCore.Qt.Key_BracketLeft:
+        elif key == QtCore.Qt.Key_Minus:
             self.scale_display(-self.zoom_scale)
         elif key == QtCore.Qt.Key_Space:
             self.scale_to_fit(e)
+        elif key == QtCore.Qt.Key_Left:
+            self.change_image(max(self.FM.index - 1, 0))
+        elif key == QtCore.Qt.Key_Right:
+            self.change_image(min(self.FM.index + 1, len(self.FM.image_list) - 1))
         if self.painting and self.paint_mode == PMode.Select:
             if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
                 self.painting = False
@@ -227,11 +242,6 @@ class ImageProcessor:
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
-        # if self.painting:
-        #     # self.painter.end()
-        #     # self.selections_pnt.clear()
-        #     self.painting = False
-        # else:
         self.painting = True
         r = int(self.brush_size / 2)
         curr_pos = self.UI.graphicsView.mapToScene(e.pos())
@@ -247,18 +257,9 @@ class ImageProcessor:
             )
             self.painter.drawEllipse(curr_pos.x() - r, curr_pos.y() - r, self.brush_size, self.brush_size)
             # self.ui.centralwidget.update()
-        elif self.paint_mode == PMode.Select:
+        elif self.paint_mode is PMode.Select:
             self.selections_pnt.append(curr_pos)
-            if self.display_sel is not None:
-                self.scene.removeItem(self.display_sel)
-            my_path = QPainterPath()
-            self.selection_layer.fill(self.colors.BLANK)
-            my_path.addPolygon(QPolygonF(self.selections_pnt))
-            my_path.closeSubpath()
-            pt = QPainter(self.selection_layer)
-            pt.setPen(QPen(QColor(255, 255, 0, 255), 5))
-            pt.drawPath(my_path)
-            self.display_sel = self.scene.addPixmap(self.selection_layer)
+            self.draw_polygon_selection()
 
     # 結束繪圖
     def end_paint(self, e):
@@ -287,8 +288,9 @@ class ImageProcessor:
                 ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
                 if self.display_line is not None:
                     self.scene.removeItem(self.display_line)
+                curr_scale = self.UI.graphicsView.viewportTransform().m11()
                 self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(),
-                                                       QPen(QColor(255, 255, 0, 255), 5))
+                                                       QPen(QColor(255, 255, 0, 255), 5 / curr_scale))
 
         if self.paint_mode == PMode.Brush:
             self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
@@ -307,6 +309,8 @@ class ImageProcessor:
         t = self.UI.graphicsView.viewportTransform()
         if t.m31() >= 1 and t.m32() >= 1:
             self.scale_to_fit()
+        if self.painting and self.paint_mode is PMode.Select:
+            self.draw_polygon_selection()
 
     # 調整 viewport 符合圖片大小
     def scale_to_fit(self, e: QWheelEvent = None):
@@ -329,10 +333,8 @@ class ImageProcessor:
 
         if self.display_img is None:
             self.display_img = self.scene.addPixmap(self.pixmap_img)
-            self.display_sel = self.scene.addPixmap(self.selection_layer)
         else:
             self.display_img.setPixmap(self.pixmap_img)
-            self.display_sel.setPixmap(self.selection_layer)
 
         self.draw_annotations(_index)
 
@@ -366,18 +368,9 @@ class ImageProcessor:
                 f_size = os_path.getsize(f'{self.FM.image_dir}/{f_name}')
                 f_name = f'{f_name}{f_size}'
                 a = self.FM.annotations[f_name]
-                self.UI.statusbar.showMessage(f"{len(a['regions'])} annotation(s) loaded")
+                self.UI.statusbar.showMessage(f"{len(a['regions'])} region(s) loaded")
                 # polygons = [r['shape_attributes'] for r in a['regions']]
 
-                label_colors = [
-                    self.colors.RED,
-                    self.colors.GREEN,
-                    self.colors.BLUE,
-                    self.colors.YELLOW,
-                    self.colors.FUCHSIA,
-                    self.colors.AQUA
-                ]
-                nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5}
                 cidx = 0
 
                 for r in a['regions']:
@@ -392,7 +385,8 @@ class ImageProcessor:
                         paint_color = label_colors[cidx]
                         cidx = (cidx + 1) % 6
 
-                    classname = r['region_attributes']['Name']
+                    # classname = r['region_attributes']['Name']
+                    classname = next(iter(r['region_attributes'].values()))
                     try:
                         self.pixmap_mask[classname]
                     except KeyError:
@@ -407,7 +401,7 @@ class ImageProcessor:
                     self.painter.end()
 
             except KeyError:
-                self.UI.statusbar.showMessage('No annotation for this image')
+                self.UI.statusbar.showMessage('No region annotated in this image')
         # 若沒有資料導入 創建預設類別圖層
         if len(self.pixmap_mask) == 0:
             self.pixmap_mask[self.default_class] = QPixmap(blank)
@@ -433,6 +427,16 @@ class ImageProcessor:
                 except KeyError:
                     self.display_mask[classname] = self.scene.addPixmap(pixmap)
                     self.display_mask[classname].setOpacity(0.5)
+
+    # 繪製多邊形選擇外框
+    def draw_polygon_selection(self):
+        if self.display_sel is not None:
+            self.scene.removeItem(self.display_sel)
+        my_path = QPainterPath()
+        my_path.addPolygon(QPolygonF(self.selections_pnt))
+        my_path.closeSubpath()
+        curr_scale = self.UI.graphicsView.viewportTransform().m11()
+        self.display_sel = self.scene.addPath(my_path, QPen(QColor(255, 255, 0, 255), 5 / curr_scale))
 
     # 復原動作
     def undo_changes(self):
@@ -584,6 +588,8 @@ class ImageProcessor:
             blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
 
             self.pixmap_mask[newclass] = QPixmap(blank)
+            self.BM.push(newclass, self.pixmap_mask[newclass])
+            self.BM.unsaved_actions += 1
             self.UI.comboBox.addItem(newclass)
 
     def change_paint_mode(self):
