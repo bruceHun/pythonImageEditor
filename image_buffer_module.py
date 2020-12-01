@@ -5,8 +5,9 @@ MAX_BUFFER_SIZE = 50
 
 
 class BufferItem:
-    data: list = []
-    index: int = -1
+    def __init__(self):
+        self.data: list = []
+        self.index: int = -1
 
     def push(self, pixmap: QPixmap):
         # 在中間插入
