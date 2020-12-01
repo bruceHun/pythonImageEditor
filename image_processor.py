@@ -5,7 +5,7 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem, \
     QMessageBox, QGraphicsPathItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
-    QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath
+    QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath, QCursor
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
@@ -13,11 +13,18 @@ from file_manager import FileManager
 from dialog_settings import Ui_DialogSettings
 from dialog_line_edit import Ui_DialogLineEdit
 from enum import Enum
+from threading import Thread
 
 
 class PMode(Enum):
     Brush = 1
     Select = 2
+
+
+class MMode(Enum):
+    Neutral = 0
+    Painting = 1
+    Grabing = 2
 
 
 @dataclass
@@ -75,7 +82,7 @@ class ImageProcessor:
     brush_size = 300
     brush_cursor: QGraphicsPixmapItem = None
     painter: QPainter = None
-    painting: bool = False
+    m_mode: MMode = MMode.Neutral
     paint_mode: PMode = PMode.Brush
     selections_pnt: list = []
     erase_mode: bool = True
@@ -92,10 +99,12 @@ class ImageProcessor:
     # 設定檔解析器
     config: ConfigParser = None
 
+    cidx: int = 0
+
     def __init__(self):
-        self.FM = FileManager()
-        self.BM = ImageBufferManager()
-        self.selection_layer = QPixmap()
+        self.FM: FileManager = FileManager()
+        self.BM: ImageBufferManager = ImageBufferManager()
+        self.prev_pos: QPoint = QPoint()
 
     def init(self, is_running: bool = False, show_annotated_switch: bool = False):
         if is_running and not show_annotated_switch:
@@ -185,9 +194,9 @@ class ImageProcessor:
             self.change_image(max(self.FM.index - 1, 0))
         elif key == QtCore.Qt.Key_Right:
             self.change_image(min(self.FM.index + 1, len(self.FM.image_list) - 1))
-        if self.painting and self.paint_mode == PMode.Select:
+        if self.m_mode is MMode.Painting and self.paint_mode == PMode.Select:
             if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
-                self.painting = False
+                self.m_mode = MMode.Neutral
                 self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
                 self.painter.setPen(QPen(self.label_color))
                 self.painter.setBrush(QBrush(self.label_color))
@@ -201,7 +210,7 @@ class ImageProcessor:
                 self.BM.unsaved_actions += 1
                 self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
             elif key == QtCore.Qt.Key_Escape:
-                self.painting = False
+                self.m_mode = MMode.Neutral
                 self.scene.removeItem(self.display_line)
                 self.scene.removeItem(self.display_sel)
                 self.selections_pnt.clear()
@@ -242,7 +251,7 @@ class ImageProcessor:
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
-        self.painting = True
+        self.m_mode = MMode.Painting
         r = int(self.brush_size / 2)
         curr_pos = self.UI.graphicsView.mapToScene(e.pos())
         if self.paint_mode == PMode.Brush:
@@ -262,20 +271,36 @@ class ImageProcessor:
             self.draw_polygon_selection()
 
     # 結束繪圖
-    def end_paint(self, e):
+    def end_paint(self):
         if self.paint_mode == PMode.Brush:
             self.update_mask()
-            self.painting = False
+            self.m_mode = MMode.Neutral
             self.BM.unsaved_actions += 1
             self.painter.end()
             self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
+
+    def mouse_press(self, e: QMouseEvent):
+        if e.button() == QtCore.Qt.LeftButton and self.m_mode is not MMode.Grabing:
+            self.start_paint(e)
+        elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Neutral:
+            self.m_mode = MMode.Grabing
+            self.UI.graphicsView.viewport().setCursor(QCursor(QtCore.Qt.ClosedHandCursor))
+            self.prev_pos = e.pos()
+
+    def mouse_release(self, e: QMouseEvent):
+        if e.button() == QtCore.Qt.LeftButton and self.m_mode is MMode.Painting:
+            self.end_paint()
+        elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Grabing:
+            self.m_mode = MMode.Neutral
+            cursor_type = QtCore.Qt.ArrowCursor if self.paint_mode is PMode.Select else QtCore.Qt.CrossCursor
+            self.UI.graphicsView.viewport().setCursor(QCursor(cursor_type))
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e: QMouseEvent):
         r = int(self.brush_size / 2)
         mappos = self.UI.graphicsView.mapToScene(e.pos())
         curr_x, curr_y = mappos.x() - r, mappos.y() - r
-        if self.painting:
+        if self.m_mode is MMode.Painting:
             if self.paint_mode == PMode.Brush:
                 self.painter.setCompositionMode(
                     QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
@@ -291,6 +316,13 @@ class ImageProcessor:
                 curr_scale = self.UI.graphicsView.viewportTransform().m11()
                 self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(),
                                                        QPen(QColor(255, 255, 0, 255), 5 / curr_scale))
+        elif self.m_mode is MMode.Grabing:
+            delta: QPoint = -(e.pos() - self.prev_pos)
+            dx = self.UI.graphicsView.horizontalScrollBar().value() + delta.x()
+            dy = self.UI.graphicsView.verticalScrollBar().value() + delta.y()
+            self.UI.graphicsView.horizontalScrollBar().setValue(dx)
+            self.UI.graphicsView.verticalScrollBar().setValue(dy)
+            self.prev_pos = e.pos()
 
         if self.paint_mode == PMode.Brush:
             self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
@@ -309,7 +341,7 @@ class ImageProcessor:
         t = self.UI.graphicsView.viewportTransform()
         if t.m31() >= 1 and t.m32() >= 1:
             self.scale_to_fit()
-        if self.painting and self.paint_mode is PMode.Select:
+        if self.m_mode is MMode.Painting and self.paint_mode is PMode.Select:
             self.draw_polygon_selection()
 
     # 調整 viewport 符合圖片大小
@@ -328,8 +360,6 @@ class ImageProcessor:
         self.UI.listWidget.setCurrentRow(_index)
 
         self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{self.FM.image_list[_index]}')
-        blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
-        self.selection_layer = QPixmap(blank)
 
         if self.display_img is None:
             self.display_img = self.scene.addPixmap(self.pixmap_img)
@@ -371,33 +401,30 @@ class ImageProcessor:
                 self.UI.statusbar.showMessage(f"{len(a['regions'])} region(s) loaded")
                 # polygons = [r['shape_attributes'] for r in a['regions']]
 
-                cidx = 0
-
+                self.cidx = 0
+                result: dict = {}
+                threads: list = []
                 for r in a['regions']:
-                    area = QPolygon()
-                    p = r['shape_attributes']
-                    for i in range(len(p['all_points_x'])):
-                        area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
+                    t = Thread(target=self.process_region(r, result))
+                    t.start()
+                    threads.append(t)
 
-                    try:
-                        paint_color = label_colors[nameref[r['region_attributes']['Color']]]
-                    except KeyError:
-                        paint_color = label_colors[cidx]
-                        cidx = (cidx + 1) % 6
+                for t in threads:
+                    t.join()
 
-                    # classname = r['region_attributes']['Name']
-                    classname = next(iter(r['region_attributes'].values()))
+                for key, val in result.items():
                     try:
-                        self.pixmap_mask[classname]
+                        self.pixmap_mask[key]
                     except KeyError:
-                        self.pixmap_mask[classname] = QPixmap(blank)
+                        self.pixmap_mask[key] = QPixmap(blank)
 
                     # Painting prep
-                    self.painter = QPainter(self.pixmap_mask[classname])
+                    self.painter = QPainter(self.pixmap_mask[key])
                     self.painter.setCompositionMode(QPainter.CompositionMode_Source)
-                    self.painter.setPen(QPen(paint_color))
-                    self.painter.setBrush(QBrush(paint_color))
-                    self.painter.drawPolygon(area)
+                    for region in val:
+                        self.painter.setPen(QPen(region[0]))
+                        self.painter.setBrush(QBrush(region[0]))
+                        self.painter.drawPolygon(region[1])
                     self.painter.end()
 
             except KeyError:
@@ -410,9 +437,28 @@ class ImageProcessor:
         for key, val in self.pixmap_mask.items():
             self.UI.comboBox.addItem(key)
 
+    def process_region(self, r, res: dict):
+        area = QPolygon()
+        p = r['shape_attributes']
+        for i in range(len(p['all_points_x'])):
+            area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
+
+        try:
+            paint_color = label_colors[nameref[r['region_attributes']['Color']]]
+        except KeyError:
+            paint_color = label_colors[self.cidx]
+            self.cidx = (self.cidx + 1) % 6
+
+        classname = next(iter(r['region_attributes'].values()))
+        try:
+            res[classname]
+        except KeyError:
+            res[classname] = []
+        res[classname].append([paint_color, area])
+
     # 更新顯示遮罩
     def update_mask(self):
-        if self.painting:
+        if self.m_mode is MMode.Painting:
             classname = self.UI.comboBox.currentText()
             pixmap = self.pixmap_mask[classname]
             try:
@@ -596,6 +642,8 @@ class ImageProcessor:
         if self.UI.action_Select_Polygon.isChecked():
             self.paint_mode = PMode.Select
             self.brush_cursor.hide()
+            self.UI.graphicsView.viewport().setCursor(QCursor(QtCore.Qt.ArrowCursor))
         else:
             self.paint_mode = PMode.Brush
             self.brush_cursor.show()
+            self.UI.graphicsView.viewport().setCursor(QCursor(QtCore.Qt.CrossCursor))

@@ -22,8 +22,8 @@ class MaskEditor:
 
         # 滑鼠事件
         self.UI.graphicsView.mouseMoveEvent = self.IP.mouse_movement
-        self.UI.graphicsView.mousePressEvent = self.IP.start_paint
-        self.UI.graphicsView.mouseReleaseEvent = self.IP.end_paint
+        self.UI.graphicsView.mousePressEvent = self.IP.mouse_press
+        self.UI.graphicsView.mouseReleaseEvent = self.IP.mouse_release
         # 鍵盤事件
         self.win.keyPressEvent = self.IP.key_event
         # 滾輪事件

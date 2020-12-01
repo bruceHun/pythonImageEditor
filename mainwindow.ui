@@ -51,6 +51,9 @@ font: 9pt &quot;Arial&quot;;</string>
         <property name="cursor" stdset="0">
          <cursorShape>ArrowCursor</cursorShape>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
+        </property>
         <property name="autoFillBackground">
          <bool>false</bool>
         </property>
@@ -107,6 +110,12 @@ font: 9pt &quot;Arial&quot;;</string>
             <height>0</height>
            </size>
           </property>
+          <property name="cursor">
+           <cursorShape>OpenHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="minimum">
            <number>5</number>
           </property>
@@ -131,6 +140,9 @@ font: 9pt &quot;Arial&quot;;</string>
         </item>
         <item row="0" column="1">
          <widget class="QComboBox" name="comboBox">
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(255, 255, 255);
 font: 9pt &quot;Arial&quot;;</string>
@@ -162,6 +174,12 @@ font: 9pt &quot;Arial&quot;;</string>
         </item>
         <item row="2" column="1">
          <widget class="QSlider" name="brightnessSlider">
+          <property name="cursor">
+           <cursorShape>OpenHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="maximum">
            <number>100</number>
           </property>
@@ -183,8 +201,30 @@ font: 9pt &quot;Arial&quot;;</string>
       </item>
       <item>
        <layout class="QGridLayout" name="BrushColorPanel">
+        <item row="0" column="2">
+         <widget class="QPushButton" name="ColorBtn2">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(0, 255, 0);</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
         <item row="0" column="1">
          <widget class="QPushButton" name="ColorBtn1">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(252, 0, 0);
 selection-background-color: rgb(0, 0, 255);</string>
@@ -223,18 +263,14 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
-         <widget class="QPushButton" name="ColorBtn2">
-          <property name="styleSheet">
-           <string notr="true">background-color: rgb(0, 255, 0);</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="3">
          <widget class="QPushButton" name="ColorBtn3">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(0, 0, 255);</string>
           </property>
@@ -243,18 +279,14 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="2">
-         <widget class="QPushButton" name="ColorBtn5">
-          <property name="styleSheet">
-           <string notr="true">background-color: rgb(255, 0, 255);</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
         <item row="1" column="3">
          <widget class="QPushButton" name="ColorBtn6">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(0, 255, 255);</string>
           </property>
@@ -263,8 +295,30 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
+        <item row="1" column="2">
+         <widget class="QPushButton" name="ColorBtn5">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(255, 0, 255);</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
         <item row="1" column="1">
          <widget class="QPushButton" name="ColorBtn4">
+          <property name="cursor">
+           <cursorShape>PointingHandCursor</cursorShape>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::ClickFocus</enum>
+          </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(255, 255, 0);</string>
           </property>
@@ -276,38 +330,21 @@ font: 9pt &quot;Arial&quot;;</string>
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="sizeConstraint">
-         <enum>QLayout::SetFixedSize</enum>
+       <widget class="QPushButton" name="EraserBtn">
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
         </property>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>85</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="EraserBtn">
-          <property name="styleSheet">
-           <string notr="true">background-color: rgb(255, 255, 255);
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(255, 255, 255);
 font: 9pt &quot;Arial&quot;;</string>
-          </property>
-          <property name="text">
-           <string>Eraser</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+        </property>
+        <property name="text">
+         <string>Eraser</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -330,6 +367,9 @@ font: 9pt &quot;Arial&quot;;</string>
       </property>
       <property name="mouseTracking">
        <bool>true</bool>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::ClickFocus</enum>
       </property>
       <property name="styleSheet">
        <string notr="true">background-color: rgb(0, 0, 0);</string>
@@ -361,8 +401,14 @@ font: 9pt &quot;Arial&quot;;</string>
           <height>16777215</height>
          </size>
         </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="mouseTracking">
          <bool>false</bool>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
@@ -395,6 +441,12 @@ background-color: rgb(90, 90, 90);</string>
           <height>16777215</height>
          </size>
         </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
+        </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
 font: 9pt &quot;Arial&quot;;
@@ -426,6 +478,12 @@ background-color: rgb(90, 90, 90);</string>
           <height>16777215</height>
          </size>
         </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
+        </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
 font: 9pt &quot;Arial&quot;;
@@ -456,6 +514,12 @@ background-color: rgb(90, 90, 90);</string>
           <width>100</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::ClickFocus</enum>
         </property>
         <property name="styleSheet">
          <string notr="true">color: rgb(255, 255, 255);
