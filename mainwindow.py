@@ -24,8 +24,9 @@ class Ui_MainWindow(object):
         self.SideBar = QtWidgets.QVBoxLayout()
         self.SideBar.setObjectName("SideBar")
         self.NumOfImageslabel = QtWidgets.QLabel(self.centralwidget)
+        self.NumOfImageslabel.setFocusPolicy(QtCore.Qt.NoFocus)
         self.NumOfImageslabel.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                            "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.NumOfImageslabel.setObjectName("NumOfImageslabel")
         self.SideBar.addWidget(self.NumOfImageslabel)
         self.listWidget = QtWidgets.QListWidget(self.centralwidget)
@@ -36,7 +37,7 @@ class Ui_MainWindow(object):
         self.listWidget.setSizePolicy(sizePolicy)
         self.listWidget.setMinimumSize(QtCore.QSize(200, 0))
         self.listWidget.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        self.listWidget.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.listWidget.setFocusPolicy(QtCore.Qt.NoFocus)
         self.listWidget.setAutoFillBackground(False)
         self.listWidget.setStyleSheet("background-color: rgb(200, 200, 200);")
         self.listWidget.setAlternatingRowColors(False)
@@ -54,7 +55,7 @@ class Ui_MainWindow(object):
         self.labelBrushSize.setSizePolicy(sizePolicy)
         self.labelBrushSize.setMinimumSize(QtCore.QSize(80, 0))
         self.labelBrushSize.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                          "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.labelBrushSize.setObjectName("labelBrushSize")
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.labelBrushSize)
         self.BrushSizeSlider = QtWidgets.QSlider(self.centralwidget)
@@ -73,13 +74,13 @@ class Ui_MainWindow(object):
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.BrushSizeSlider)
         self.labelCurrClass = QtWidgets.QLabel(self.centralwidget)
         self.labelCurrClass.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                          "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.labelCurrClass.setObjectName("labelCurrClass")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.LabelRole, self.labelCurrClass)
         self.comboBox = QtWidgets.QComboBox(self.centralwidget)
         self.comboBox.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.comboBox.setStyleSheet("background-color: rgb(255, 255, 255);\n"
-                                    "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.comboBox.setObjectName("comboBox")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.comboBox)
         self.Brightnesslabel = QtWidgets.QLabel(self.centralwidget)
@@ -90,7 +91,7 @@ class Ui_MainWindow(object):
         self.Brightnesslabel.setSizePolicy(sizePolicy)
         self.Brightnesslabel.setMinimumSize(QtCore.QSize(80, 0))
         self.Brightnesslabel.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                           "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.Brightnesslabel.setObjectName("Brightnesslabel")
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.Brightnesslabel)
         self.brightnessSlider = QtWidgets.QSlider(self.centralwidget)
@@ -110,16 +111,16 @@ class Ui_MainWindow(object):
         self.BrushColorPanel.setObjectName("BrushColorPanel")
         self.ColorBtn2 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn2.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn2.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn2.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn2.setStyleSheet("background-color: rgb(0, 255, 0);")
         self.ColorBtn2.setText("")
         self.ColorBtn2.setObjectName("ColorBtn2")
         self.BrushColorPanel.addWidget(self.ColorBtn2, 0, 2, 1, 1)
         self.ColorBtn1 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn1.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn1.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn1.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn1.setStyleSheet("background-color: rgb(252, 0, 0);\n"
-                                     "selection-background-color: rgb(0, 0, 255);")
+"selection-background-color: rgb(0, 0, 255);")
         self.ColorBtn1.setText("")
         self.ColorBtn1.setObjectName("ColorBtn1")
         self.BrushColorPanel.addWidget(self.ColorBtn1, 0, 1, 1, 1)
@@ -131,34 +132,35 @@ class Ui_MainWindow(object):
         self.labelBrushColor.setSizePolicy(sizePolicy)
         self.labelBrushColor.setMinimumSize(QtCore.QSize(80, 0))
         self.labelBrushColor.setMaximumSize(QtCore.QSize(80, 16777215))
+        self.labelBrushColor.setFocusPolicy(QtCore.Qt.NoFocus)
         self.labelBrushColor.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                           "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.labelBrushColor.setObjectName("labelBrushColor")
         self.BrushColorPanel.addWidget(self.labelBrushColor, 0, 0, 1, 1)
         self.ColorBtn3 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn3.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn3.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn3.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn3.setStyleSheet("background-color: rgb(0, 0, 255);")
         self.ColorBtn3.setText("")
         self.ColorBtn3.setObjectName("ColorBtn3")
         self.BrushColorPanel.addWidget(self.ColorBtn3, 0, 3, 1, 1)
         self.ColorBtn6 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn6.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn6.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn6.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn6.setStyleSheet("background-color: rgb(0, 255, 255);")
         self.ColorBtn6.setText("")
         self.ColorBtn6.setObjectName("ColorBtn6")
         self.BrushColorPanel.addWidget(self.ColorBtn6, 1, 3, 1, 1)
         self.ColorBtn5 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn5.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn5.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn5.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn5.setStyleSheet("background-color: rgb(255, 0, 255);")
         self.ColorBtn5.setText("")
         self.ColorBtn5.setObjectName("ColorBtn5")
         self.BrushColorPanel.addWidget(self.ColorBtn5, 1, 2, 1, 1)
         self.ColorBtn4 = QtWidgets.QPushButton(self.centralwidget)
         self.ColorBtn4.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.ColorBtn4.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.ColorBtn4.setFocusPolicy(QtCore.Qt.NoFocus)
         self.ColorBtn4.setStyleSheet("background-color: rgb(255, 255, 0);")
         self.ColorBtn4.setText("")
         self.ColorBtn4.setObjectName("ColorBtn4")
@@ -166,9 +168,9 @@ class Ui_MainWindow(object):
         self.SideBar.addLayout(self.BrushColorPanel)
         self.EraserBtn = QtWidgets.QPushButton(self.centralwidget)
         self.EraserBtn.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.EraserBtn.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.EraserBtn.setFocusPolicy(QtCore.Qt.NoFocus)
         self.EraserBtn.setStyleSheet("background-color: rgb(255, 255, 255);\n"
-                                     "font: 9pt \"Arial\";")
+"font: 9pt \"Arial\";")
         self.EraserBtn.setObjectName("EraserBtn")
         self.SideBar.addWidget(self.EraserBtn)
         self.gridLayout.addLayout(self.SideBar, 0, 1, 2, 1)
@@ -181,7 +183,7 @@ class Ui_MainWindow(object):
         self.graphicsView.setSizeIncrement(QtCore.QSize(0, 0))
         self.graphicsView.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.CrossCursor))
         self.graphicsView.setMouseTracking(True)
-        self.graphicsView.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.graphicsView.setFocusPolicy(QtCore.Qt.NoFocus)
         self.graphicsView.setStyleSheet("background-color: rgb(0, 0, 0);")
         self.graphicsView.setTransformationAnchor(QtWidgets.QGraphicsView.NoAnchor)
         self.graphicsView.setObjectName("graphicsView")
@@ -198,11 +200,11 @@ class Ui_MainWindow(object):
         self.FuncBtn1.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn1.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.FuncBtn1.setMouseTracking(False)
-        self.FuncBtn1.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.FuncBtn1.setFocusPolicy(QtCore.Qt.NoFocus)
         self.FuncBtn1.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "font: 9pt \"Arial\";\n"
-                                    "selection-color: rgb(255, 170, 0);\n"
-                                    "background-color: rgb(90, 90, 90);")
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn1.setObjectName("FuncBtn1")
         self.MainScreen.addWidget(self.FuncBtn1)
         self.FuncBtn2 = QtWidgets.QPushButton(self.centralwidget)
@@ -214,11 +216,11 @@ class Ui_MainWindow(object):
         self.FuncBtn2.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn2.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn2.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.FuncBtn2.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.FuncBtn2.setFocusPolicy(QtCore.Qt.NoFocus)
         self.FuncBtn2.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "font: 9pt \"Arial\";\n"
-                                    "selection-color: rgb(255, 170, 0);\n"
-                                    "background-color: rgb(90, 90, 90);")
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn2.setObjectName("FuncBtn2")
         self.MainScreen.addWidget(self.FuncBtn2)
         self.FuncBtn5 = QtWidgets.QPushButton(self.centralwidget)
@@ -230,11 +232,11 @@ class Ui_MainWindow(object):
         self.FuncBtn5.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn5.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn5.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.FuncBtn5.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.FuncBtn5.setFocusPolicy(QtCore.Qt.NoFocus)
         self.FuncBtn5.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "font: 9pt \"Arial\";\n"
-                                    "selection-color: rgb(255, 170, 0);\n"
-                                    "background-color: rgb(90, 90, 90);")
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn5.setObjectName("FuncBtn5")
         self.MainScreen.addWidget(self.FuncBtn5)
         self.FuncBtn6 = QtWidgets.QPushButton(self.centralwidget)
@@ -246,11 +248,11 @@ class Ui_MainWindow(object):
         self.FuncBtn6.setMinimumSize(QtCore.QSize(50, 0))
         self.FuncBtn6.setMaximumSize(QtCore.QSize(100, 16777215))
         self.FuncBtn6.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
-        self.FuncBtn6.setFocusPolicy(QtCore.Qt.ClickFocus)
+        self.FuncBtn6.setFocusPolicy(QtCore.Qt.NoFocus)
         self.FuncBtn6.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                    "font: 9pt \"Arial\";\n"
-                                    "selection-color: rgb(255, 170, 0);\n"
-                                    "background-color: rgb(90, 90, 90);")
+"font: 9pt \"Arial\";\n"
+"selection-color: rgb(255, 170, 0);\n"
+"background-color: rgb(90, 90, 90);")
         self.FuncBtn6.setObjectName("FuncBtn6")
         self.MainScreen.addWidget(self.FuncBtn6)
         self.gridLayout.addLayout(self.MainScreen, 1, 0, 1, 1)
@@ -258,7 +260,7 @@ class Ui_MainWindow(object):
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 961, 25))
         self.menubar.setStyleSheet("color: rgb(255, 255, 255);\n"
-                                   "selection-color: rgb(255, 170, 0);")
+"selection-color: rgb(255, 170, 0);")
         self.menubar.setObjectName("menubar")
         self.menu_File = QtWidgets.QMenu(self.menubar)
         self.menu_File.setStyleSheet("color: rgb(255, 255, 255);")
@@ -364,7 +366,6 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()

@@ -669,6 +669,8 @@ class ImageProcessor:
 
         :return:
         """
+        if self.paint_mode is not PMode.Brush:
+            return
         curr_pos = QPoint(0, 0)
         if self.brush_cursor is not None:
             curr_pos = self.brush_cursor.pos()
