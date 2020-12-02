@@ -13,7 +13,8 @@ from file_manager import FileManager
 from dialog_settings import Ui_DialogSettings
 from dialog_line_edit import Ui_DialogLineEdit
 from enum import Enum
-from threading import Thread
+from threading import Thread, Lock
+from typing import Union
 
 
 class PMode(Enum):
@@ -63,50 +64,71 @@ def get_directory():
     return filedir
 
 
-class ImageProcessor:
-    #
-    pixmap_img: QPixmap = None
-    pixmap_mask = {}
-    default_class = 'object'
-    pixmap_brush: QPixmap = None
-    display_img: QGraphicsPixmapItem = None
-    display_sel: QGraphicsPathItem = None
-    display_line: QGraphicsLineItem = None
-    display_mask = {}
-    scene: QGraphicsScene = None
-    zoom_scale = 0.1
-    zoom_max = 2
-    # 檔案相關
-    FM: FileManager = None
-    # 繪圖相關
-    brush_size = 300
-    brush_cursor: QGraphicsPixmapItem = None
-    painter: QPainter = None
-    m_mode: MMode = MMode.Neutral
-    paint_mode: PMode = PMode.Brush
-    selections_pnt: list = []
-    erase_mode: bool = True
-    label_color: QColor = False
-    mask: QBitmap = None
-    colors = Colors()
-    # 操作設定相關
-    scroll_speed = -5
-    # 繪圖緩衝區模組
-    BM: ImageBufferManager = None
-    # 上層顯示物件
-    UI: Ui_MainWindow = None
-    main_window: QMainWindow = None
-    # 設定檔解析器
-    config: ConfigParser = None
+def paint_regions_by_class(_pixmap: QPixmap, _data: list):
+    """
 
-    cidx: int = 0
+    :param _pixmap:
+    :param _data:
+    :return:
+    """
+    # Painting prep
+    pt = QPainter(_pixmap)
+    pt.setCompositionMode(QPainter.CompositionMode_Source)
+    for region in _data:
+        pt.setPen(QPen(region[0]))
+        pt.setBrush(QBrush(region[0]))
+        pt.drawPolygon(region[1])
+    pt.end()
+
+
+class ImageProcessor:
+
+    is_processing: bool = False
 
     def __init__(self):
-        self.FM: FileManager = FileManager()
-        self.BM: ImageBufferManager = ImageBufferManager()
         self.prev_pos: QPoint = QPoint()
+        self.pixmap_img: Union[QPixmap, None] = None
+        self.pixmap_mask = {}
+        self.default_class = 'object'
+        self.pixmap_brush: Union[QPixmap, None] = None
+        self.display_img: Union[QGraphicsPixmapItem, None] = None
+        self.display_sel: Union[QGraphicsPathItem, None] = None
+        self.display_line: Union[QGraphicsLineItem, None] = None
+        self.display_mask = {}
+        self.scene: Union[QGraphicsScene, None] = None
+        self.zoom_scale = 0.1
+        self.zoom_max = 2
+        # 檔案相關
+        self.FM: FileManager = FileManager()
+        # 繪圖相關
+        self.brush_size = 300
+        self.brush_cursor: Union[QGraphicsPixmapItem, None] = None
+        self.painter: Union[QPainter, None] = None
+        self.m_mode: MMode = MMode.Neutral
+        self.paint_mode: PMode = PMode.Brush
+        self.selections_pnt: list = []
+        self.erase_mode: bool = True
+        self.label_color: QColor = Colors.DFUCHSIA
+        self.mask: Union[QBitmap, None] = None
+        self.prev_pos: QPoint = QPoint(0, 0)
+        # 操作設定相關
+        self.scroll_speed = 5
+        # 繪圖緩衝區模組
+        self.BM: ImageBufferManager = ImageBufferManager()
+        # 上層顯示物件
+        self.UI: Union[Ui_MainWindow, None] = None
+        self.main_window: Union[QMainWindow, None] = None
+        # 設定檔解析器
+        self.config: Union[ConfigParser, None] = None
+        self.cidx: int = 0
 
     def init(self, is_running: bool = False, show_annotated_switch: bool = False):
+        """
+
+        :param is_running:
+        :param show_annotated_switch:
+        :return:
+        """
         if is_running and not show_annotated_switch:
             directory = get_directory()
             if directory == "":
@@ -154,7 +176,7 @@ class ImageProcessor:
                 self.default_class = self.config.get('GeneralSettings', 'DefaultClass')
                 self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
                 self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
-                self.scroll_speed = 5 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -5
+                self.scroll_speed *= 1 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -1
                 self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
                 self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
                 self.erase_mode = bool(int(self.config.get('WorkingState', 'Erasemode')))
@@ -172,7 +194,7 @@ class ImageProcessor:
             self.erase_mode = True
             self.scroll_speed = -5
 
-        self.label_color = self.colors.FUCHSIA
+        self.label_color = Colors.FUCHSIA
 
         # 列出圖片檔名
         self.FM.get_file_lists(self.UI.action_Show_annotated.isChecked())
@@ -183,6 +205,13 @@ class ImageProcessor:
         self.UI.NumOfImageslabel.setText(f' {num_of_images} item{"" if num_of_images == 1 else "s"}')
 
     def key_event(self, e: QKeyEvent):
+        """
+
+        :param e:
+        :return:
+        """
+        if self.is_processing:
+            return
         key = e.key()
         if key == QtCore.Qt.Key_Plus or key == QtCore.Qt.Key_Equal:
             self.scale_display(self.zoom_scale)
@@ -216,7 +245,12 @@ class ImageProcessor:
                 self.selections_pnt.clear()
 
     def mouse_wheel_event(self, e: QWheelEvent):
-        delta: QtCore.QPoint = e.pixelDelta()
+        """
+
+        :param e:
+        :return:
+        """
+        delta: Union[QtCore.QPoint, float] = e.pixelDelta()
         if delta is None or delta.y() == 0:
             delta = e.angleDelta() / 10
         modifiers = int(e.modifiers())
@@ -251,6 +285,11 @@ class ImageProcessor:
 
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
+        """
+
+        :param e:
+        :return:
+        """
         self.m_mode = MMode.Painting
         r = int(self.brush_size / 2)
         curr_pos = self.UI.graphicsView.mapToScene(e.pos())
@@ -272,6 +311,10 @@ class ImageProcessor:
 
     # 結束繪圖
     def end_paint(self):
+        """
+
+        :return:
+        """
         if self.paint_mode == PMode.Brush:
             self.update_mask()
             self.m_mode = MMode.Neutral
@@ -280,6 +323,11 @@ class ImageProcessor:
             self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
 
     def mouse_press(self, e: QMouseEvent):
+        """
+
+        :param e:
+        :return:
+        """
         if e.button() == QtCore.Qt.LeftButton and self.m_mode is not MMode.Grabing:
             self.start_paint(e)
         elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Neutral:
@@ -288,6 +336,11 @@ class ImageProcessor:
             self.prev_pos = e.pos()
 
     def mouse_release(self, e: QMouseEvent):
+        """
+
+        :param e:
+        :return:
+        """
         if e.button() == QtCore.Qt.LeftButton and self.m_mode is MMode.Painting:
             self.end_paint()
         elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Grabing:
@@ -297,6 +350,11 @@ class ImageProcessor:
 
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e: QMouseEvent):
+        """
+
+        :param e:
+        :return:
+        """
         r = int(self.brush_size / 2)
         mappos = self.UI.graphicsView.mapToScene(e.pos())
         curr_x, curr_y = mappos.x() - r, mappos.y() - r
@@ -329,6 +387,11 @@ class ImageProcessor:
 
     # 調整顯示大小
     def scale_display(self, value: float):
+        """
+
+        :param value:
+        :return:
+        """
         # Noise removal
         if abs(value) < 0.01:
             return
@@ -346,16 +409,33 @@ class ImageProcessor:
 
     # 調整 viewport 符合圖片大小
     def scale_to_fit(self, e: QWheelEvent = None):
+        """
+
+        :param e:
+        :return:
+        """
         if self.display_img is not None:
             self.UI.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
 
     # 切換圖片
     def change_image(self, _index: int):
-        if self.save_annotation() == 3:
-            return
+        """
 
+        :param _index:
+        :return:
+        """
+        if self.is_processing:
+            return
+        self.is_processing = True
         self.UI.FuncBtn1.setDisabled(True)
         self.UI.FuncBtn2.setDisabled(True)
+
+        if self.save_annotation() == 3:
+            self.is_processing = False
+            self.UI.FuncBtn1.setDisabled(False)
+            self.UI.FuncBtn2.setDisabled(False)
+            return
+
         self.FM.index = _index
         self.UI.listWidget.setCurrentRow(_index)
 
@@ -374,10 +454,15 @@ class ImageProcessor:
         self.UI.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
         self.main_window.setWindowTitle(f'Mask Editor -- {self.FM.image_list[_index]}')
 
+        self.is_processing = False
         self.UI.FuncBtn1.setDisabled(False)
         self.UI.FuncBtn2.setDisabled(False)
 
     def refresh_masks(self):
+        """
+
+        :return:
+        """
         if self.save_annotation() == 3:
             return
         self.draw_annotations(self.FM.index)
@@ -385,6 +470,11 @@ class ImageProcessor:
         self.BM.unsaved_actions = 0
 
     def draw_annotations(self, _index):
+        """
+
+        :param _index:
+        :return:
+        """
         blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
         self.pixmap_mask.clear()
         for key, item in self.display_mask.items():
@@ -411,6 +501,7 @@ class ImageProcessor:
 
                 for t in threads:
                     t.join()
+                threads.clear()
 
                 for key, val in result.items():
                     try:
@@ -418,14 +509,19 @@ class ImageProcessor:
                     except KeyError:
                         self.pixmap_mask[key] = QPixmap(blank)
 
-                    # Painting prep
-                    self.painter = QPainter(self.pixmap_mask[key])
-                    self.painter.setCompositionMode(QPainter.CompositionMode_Source)
-                    for region in val:
-                        self.painter.setPen(QPen(region[0]))
-                        self.painter.setBrush(QBrush(region[0]))
-                        self.painter.drawPolygon(region[1])
-                    self.painter.end()
+                    t = Thread(target=paint_regions_by_class(self.pixmap_mask[key], val))
+                    t.start()
+                    threads.append(t)
+                    # # Painting prep
+                    # self.painter = QPainter(self.pixmap_mask[key])
+                    # self.painter.setCompositionMode(QPainter.CompositionMode_Source)
+                    # for region in val:
+                    #     self.painter.setPen(QPen(region[0]))
+                    #     self.painter.setBrush(QBrush(region[0]))
+                    #     self.painter.drawPolygon(region[1])
+                    # self.painter.end()
+                for t in threads:
+                    t.join()
 
             except KeyError:
                 self.UI.statusbar.showMessage('No region annotated in this image')
@@ -438,6 +534,12 @@ class ImageProcessor:
             self.UI.comboBox.addItem(key)
 
     def process_region(self, r, res: dict):
+        """
+
+        :param r:
+        :param res:
+        :return:
+        """
         area = QPolygon()
         p = r['shape_attributes']
         for i in range(len(p['all_points_x'])):
@@ -458,6 +560,10 @@ class ImageProcessor:
 
     # 更新顯示遮罩
     def update_mask(self):
+        """
+
+        :return:
+        """
         if self.m_mode is MMode.Painting:
             classname = self.UI.comboBox.currentText()
             pixmap = self.pixmap_mask[classname]
@@ -476,6 +582,10 @@ class ImageProcessor:
 
     # 繪製多邊形選擇外框
     def draw_polygon_selection(self):
+        """
+
+        :return:
+        """
         if self.display_sel is not None:
             self.scene.removeItem(self.display_sel)
         my_path = QPainterPath()
@@ -486,6 +596,10 @@ class ImageProcessor:
 
     # 復原動作
     def undo_changes(self):
+        """
+
+        :return:
+        """
         classname = self.UI.comboBox.currentText()
         pixmap = self.BM.undo_changes(classname)
         if pixmap is not None:
@@ -494,6 +608,10 @@ class ImageProcessor:
 
     # 重做動作
     def redo_changes(self):
+        """
+
+        :return:
+        """
         classname = self.UI.comboBox.currentText()
         pixmap = self.BM.redo_changes(classname)
         if pixmap is not None:
@@ -502,6 +620,10 @@ class ImageProcessor:
 
     # 改變筆刷大小
     def change_brush_size(self):
+        """
+
+        :return:
+        """
         if self.paint_mode == PMode.Brush:
             value = self.UI.BrushSizeSlider.value()
             self.brush_size = value
@@ -509,24 +631,33 @@ class ImageProcessor:
 
     # 改變筆刷顏色
     def change_brush_color(self, index: int):
+        """
+
+        :param index:
+        :return:
+        """
         if self.erase_mode:
             self.erase_mode = False
         if index == 0:
-            self.label_color = self.colors.RED
+            self.label_color = Colors.RED
         elif index == 1:
-            self.label_color = self.colors.GREEN
+            self.label_color = Colors.GREEN
         elif index == 2:
-            self.label_color = self.colors.BLUE
+            self.label_color = Colors.BLUE
         elif index == 3:
-            self.label_color = self.colors.YELLOW
+            self.label_color = Colors.YELLOW
         elif index == 4:
-            self.label_color = self.colors.FUCHSIA
+            self.label_color = Colors.FUCHSIA
         elif index == 5:
-            self.label_color = self.colors.AQUA
+            self.label_color = Colors.AQUA
         self.gen_brush()
 
     # 改變底圖亮度
     def change_photo_brightness(self):
+        """
+
+        :return:
+        """
         value = self.UI.brightnessSlider.value() / 100
         self.display_img.setOpacity(value)
         if value < 0.5:
@@ -534,23 +665,29 @@ class ImageProcessor:
 
     # 產生筆刷
     def gen_brush(self):
+        """
+
+        :return:
+        """
+        curr_pos = QPoint(0, 0)
         if self.brush_cursor is not None:
+            curr_pos = self.brush_cursor.pos()
             self.scene.removeItem(self.brush_cursor)
         brush_color = None
         if self.erase_mode:
-            brush_color = self.colors.WHITE
-        elif self.label_color == self.colors.RED:
-            brush_color = self.colors.DRED
-        elif self.label_color == self.colors.GREEN:
-            brush_color = self.colors.DGREEN
-        elif self.label_color == self.colors.BLUE:
-            brush_color = self.colors.DBLUE
-        elif self.label_color == self.colors.YELLOW:
-            brush_color = self.colors.DYELLOW
-        elif self.label_color == self.colors.FUCHSIA:
-            brush_color = self.colors.DFUCHSIA
-        elif self.label_color == self.colors.AQUA:
-            brush_color = self.colors.DAQUA
+            brush_color = Colors.WHITE
+        elif self.label_color == Colors.RED:
+            brush_color = Colors.DRED
+        elif self.label_color == Colors.GREEN:
+            brush_color = Colors.DGREEN
+        elif self.label_color == Colors.BLUE:
+            brush_color = Colors.DBLUE
+        elif self.label_color == Colors.YELLOW:
+            brush_color = Colors.DYELLOW
+        elif self.label_color == Colors.FUCHSIA:
+            brush_color = Colors.DFUCHSIA
+        elif self.label_color == Colors.AQUA:
+            brush_color = Colors.DAQUA
         pen = QPen(brush_color)
         self.brush_cursor = self.scene.addEllipse(
             QtCore.QRectF(0, 0, self.brush_size, self.brush_size),
@@ -558,14 +695,24 @@ class ImageProcessor:
             QBrush(brush_color)
         )
         self.brush_cursor.setOpacity(0.5)
+        self.brush_cursor.setPos(curr_pos)
 
     # 擦去模式開關
     def erase_mode_on(self):
+        """
+
+        :return:
+        """
         self.erase_mode = True
         self.gen_brush()
 
     # 離開程式
     def on_exit(self, e):
+        """
+
+        :param e:
+        :return:
+        """
         if self.BM.unsaved_actions > 0:
             self.save_annotation()
 
@@ -583,16 +730,32 @@ class ImageProcessor:
             self.config.write(file)
 
     def save_mask(self):
+        """
+
+        :return:
+        """
         self.FM.save_mask(self.pixmap_mask)
 
     def save_annotation(self):
+        """
+
+        :return:
+        """
         if self.BM.unsaved_actions != 0:
             return self.FM.save_annotation(self.pixmap_mask)
 
     def delete_mask(self):
+        """
+
+        :return:
+        """
         self.FM.delete_mask()
 
     def change_settings(self):
+        """
+
+        :return:
+        """
         dialog_settings = QDialog()
         ui = Ui_DialogSettings()
         ui.setupUi(dialog_settings)
@@ -614,6 +777,10 @@ class ImageProcessor:
             self.change_image(self.FM.index)
 
     def add_class(self):
+        """
+
+        :return:
+        """
         dialog_line_edit = QDialog()
         ui = Ui_DialogLineEdit()
         ui.setupUi(dialog_line_edit)
@@ -639,6 +806,10 @@ class ImageProcessor:
             self.UI.comboBox.addItem(newclass)
 
     def change_paint_mode(self):
+        """
+
+        :return:
+        """
         if self.UI.action_Select_Polygon.isChecked():
             self.paint_mode = PMode.Select
             self.brush_cursor.hide()

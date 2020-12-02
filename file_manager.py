@@ -77,15 +77,17 @@ def add_annotation(filename: str, filesize: int, file: dict) -> list:
 
 
 class FileManager:
-    image_list: list = []
-    via_fname: str = ''
-    annotations: dict = {}
-    image_dir: str = './'
-    index: int = -1
-    dialog_root: QDialog = None
 
     def __init__(self):
-        self.dialog_root = QDialog()
+        self.image_list: list = []
+        self.via_fname: str = ''
+        self.annotations: dict = {}
+        self.image_dir: str = './'
+        self.index: int = -1
+        self.dialog_root = None
+
+    def set_dialog_root(self, _parent):
+        self.dialog_root = _parent
 
     def get_file_lists(self, show_annotated_only: bool = False):
         for file in os_listdir(self.image_dir):
@@ -150,7 +152,7 @@ class FileManager:
                     pixmap = val.copy()
                     painter = QPainter(pixmap)
                 else:
-                    painter.drawPixmap(val)
+                    painter.drawPixmap(0, 0, val)
                 i += 1
             painter.end()
 
