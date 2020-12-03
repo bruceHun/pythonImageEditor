@@ -1,8 +1,9 @@
 from os import path as os_path, remove as os_remove, listdir as os_listdir
 import json
+from threading import Thread
 from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_SIMPLE
 import numpy as np
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter
 
 lows: np.array = np.array([[128, 0, 0, 255],
@@ -46,7 +47,8 @@ def get_contours(pixmap: QPixmap):
     return cons, cols
 
 
-def add_regions(_regions: list, contours: list, cid: list, typename: str):
+def add_regions(_regions: list, typename: str, pixmap: QPixmap):
+    contours, cids = get_contours(pixmap)
     # Area 內容
     j = 0
     for area in contours:
@@ -61,7 +63,7 @@ def add_regions(_regions: list, contours: list, cid: list, typename: str):
                 "shape_attributes": sattr,
                 "region_attributes": {
                     "Name": typename,
-                    "Color": colorid[cid[j]]
+                    "Color": colorid[cids[j]]
                 }})
         j += 1
 
@@ -121,9 +123,13 @@ class FileManager:
             # 創建圖片資訊
             r = add_annotation(fname, fsize, self.annotations)
             # 加入區域
+            threads = []
             for t_name, pix in pixmap.items():
-                contours, colorids = get_contours(pix)
-                add_regions(r, contours, colorids, t_name)
+                t = Thread(target=add_regions(r, t_name, pix))
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
             # 寫入 JSON 檔
             if self.via_fname == '':
                 self.via_fname = f'{self.image_dir}/via_region_data.json'

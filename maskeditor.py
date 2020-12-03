@@ -28,6 +28,9 @@ class MaskEditor:
         self.win.keyPressEvent = self.IP.key_event
         # 滾輪事件
         self.UI.graphicsView.wheelEvent = self.IP.mouse_wheel_event
+        # 滑鼠進出 viewport 事件
+        self.UI.graphicsView.enterEvent = self.IP.mouse_enter_viewport
+        self.UI.graphicsView.leaveEvent = self.IP.mouse_leave_viewport
         # 離開程式事件
         self.win.closeEvent = self.IP.on_exit
         # 調整視窗大小事件
@@ -58,6 +61,9 @@ class MaskEditor:
         self.UI.FuncBtn6.clicked.connect(lambda: self.IP.scale_display(-self.IP.zoom_scale))
         # 檔案清單
         self.UI.listWidget.itemClicked.connect(lambda: self.IP.change_image(self.UI.listWidget.currentRow()))
+        # 類別圖層
+        self.UI.comboBox.textActivated.connect(self.IP.update_layer_state)
+        self.UI.HideLayerCheckBox.clicked.connect(self.IP.hide_layer)
         # 滑條
         self.UI.BrushSizeSlider.valueChanged.connect(self.IP.change_brush_size)
         self.UI.brightnessSlider.valueChanged.connect(self.IP.change_photo_brightness)
@@ -76,6 +82,7 @@ class MaskEditor:
         self.IP.change_image(self.IP.FM.index)
         # 產生筆刷游標
         self.UI.BrushSizeSlider.setValue(self.IP.brush_size)
+        self.IP.change_brush_color(self.IP.label_color)
         self.IP.gen_brush()
         ##
 

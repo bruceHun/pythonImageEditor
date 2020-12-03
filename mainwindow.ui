@@ -76,7 +76,7 @@ font: 9pt &quot;Arial&quot;;</string>
       </item>
       <item>
        <layout class="QFormLayout" name="formLayout_2">
-        <item row="1" column="0">
+        <item row="2" column="0">
          <widget class="QLabel" name="labelBrushSize">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -99,7 +99,7 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="1">
+        <item row="2" column="1">
          <widget class="QSlider" name="BrushSizeSlider">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -117,7 +117,7 @@ font: 9pt &quot;Arial&quot;;</string>
            <cursorShape>OpenHandCursor</cursorShape>
           </property>
           <property name="focusPolicy">
-           <enum>Qt::ClickFocus</enum>
+           <enum>Qt::NoFocus</enum>
           </property>
           <property name="minimum">
            <number>5</number>
@@ -144,7 +144,7 @@ font: 9pt &quot;Arial&quot;;</string>
         <item row="0" column="1">
          <widget class="QComboBox" name="comboBox">
           <property name="focusPolicy">
-           <enum>Qt::ClickFocus</enum>
+           <enum>Qt::NoFocus</enum>
           </property>
           <property name="styleSheet">
            <string notr="true">background-color: rgb(255, 255, 255);
@@ -152,7 +152,7 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="0">
+        <item row="3" column="0">
          <widget class="QLabel" name="Brightnesslabel">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -175,13 +175,13 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
+        <item row="3" column="1">
          <widget class="QSlider" name="brightnessSlider">
           <property name="cursor">
            <cursorShape>OpenHandCursor</cursorShape>
           </property>
           <property name="focusPolicy">
-           <enum>Qt::ClickFocus</enum>
+           <enum>Qt::NoFocus</enum>
           </property>
           <property name="maximum">
            <number>100</number>
@@ -194,6 +194,20 @@ font: 9pt &quot;Arial&quot;;</string>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QCheckBox" name="HideLayerCheckBox">
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(255, 255, 255);
+font: 9pt &quot;Arial&quot;;</string>
+          </property>
+          <property name="text">
+           <string>Hide layer</string>
           </property>
          </widget>
         </item>
@@ -665,6 +679,9 @@ selection-color: rgb(255, 170, 0);</string>
    <property name="text">
     <string>&amp;Add Class</string>
    </property>
+   <property name="shortcut">
+    <string>C</string>
+   </property>
   </action>
   <action name="action_Export_to_Mask">
    <property name="text">
@@ -677,6 +694,9 @@ selection-color: rgb(255, 170, 0);</string>
    </property>
    <property name="text">
     <string>&amp;Select Polygon</string>
+   </property>
+   <property name="shortcut">
+    <string>S</string>
    </property>
   </action>
   <action name="action_Show_annotated">
