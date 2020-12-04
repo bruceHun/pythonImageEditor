@@ -30,9 +30,19 @@ class Ui_DialogLineEdit(object):
         self.lineEdit = QtWidgets.QLineEdit(DialogLineEdit)
         self.lineEdit.setObjectName("lineEdit")
         self.verticalLayout.addWidget(self.lineEdit)
-        spacerItem = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-        self.verticalLayout.addItem(spacerItem)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setContentsMargins(30, -1, 30, -1)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.checkBox = QtWidgets.QCheckBox(DialogLineEdit)
+        self.checkBox.setMouseTracking(False)
+        self.checkBox.setFocusPolicy(QtCore.Qt.TabFocus)
+        self.checkBox.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.checkBox.setStyleSheet("font: 9pt \"Arial\";")
+        self.checkBox.setObjectName("checkBox")
+        self.horizontalLayout.addWidget(self.checkBox)
+        self.verticalLayout.addLayout(self.horizontalLayout)
         self.buttonBox = QtWidgets.QDialogButtonBox(DialogLineEdit)
+        self.buttonBox.setStyleSheet("font: 9pt \"Arial\";")
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
@@ -47,6 +57,7 @@ class Ui_DialogLineEdit(object):
         _translate = QtCore.QCoreApplication.translate
         DialogLineEdit.setWindowTitle(_translate("DialogLineEdit", "DialogLineEdit"))
         self.label.setText(_translate("DialogLineEdit", "TextLabel"))
+        self.checkBox.setText(_translate("DialogLineEdit", "Also add to default classes"))
 
 
 if __name__ == "__main__":

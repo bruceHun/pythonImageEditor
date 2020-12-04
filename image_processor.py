@@ -3,9 +3,9 @@ from configparser import ConfigParser, NoOptionError
 from os import path as os_path
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QMainWindow, QDialog, QGraphicsLineItem, \
-    QMessageBox, QGraphicsPathItem
+    QMessageBox, QGraphicsPathItem, QGraphicsSimpleTextItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
-    QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath, QCursor
+    QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath, QCursor, QFont
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
@@ -104,6 +104,8 @@ class ImageProcessor:
         self.scene: Union[QGraphicsScene, None] = None
         self.zoom_scale = 0.1
         self.zoom_max = 2
+        self.tag_size = 32
+        self.show_tag: bool = True
         # 檔案相關
         self.FM: FileManager = FileManager()
         # 繪圖相關
@@ -167,7 +169,9 @@ class ImageProcessor:
                                               'ZoomScale': 0.1,
                                               'ZoomMaxScale': 5,
                                               'InvertScroll': 'False',
-                                              'BorderInPixels': 50
+                                              'BorderInPixels': 50,
+                                              'ShowClassNameTag': 1,
+                                              'ClassNameTagFontSize': 32
                                               }
             self.config["WorkingState"] = {'WorkingImg': '0',
                                            'BrushSize': '300',
@@ -186,6 +190,8 @@ class ImageProcessor:
                 self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
                 self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
                 self.scroll_speed *= 1 if self.config.get('GeneralSettings', 'InvertScroll') == 'True' else -1
+                self.show_tag = int(self.config.get('GeneralSettings', 'ShowClassNameTag'))
+                self.tag_size = int(self.config.get('GeneralSettings', 'ClassNameTagFontSize'))
                 self.border = int(self.config.get('GeneralSettings', 'BorderInPixels'))
                 self.FM.index = int(self.config.get('WorkingState', 'WorkingImg'))
                 self.brush_size = int(self.config.get('WorkingState', 'BrushSize'))
@@ -371,6 +377,9 @@ class ImageProcessor:
         :return:
         """
         if e.button() == QtCore.Qt.LeftButton and self.m_mode is not MMode.Grabing:
+            for item in self.scene.items():
+                if isinstance(item, QGraphicsSimpleTextItem):
+                    self.scene.removeItem(item)
             self.start_paint(e)
         elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Neutral:
             self.m_mode = MMode.Grabing
@@ -497,6 +506,11 @@ class ImageProcessor:
         else:
             self.display_img.setPixmap(self.pixmap_img)
 
+        # 移除類別標籤
+        for item in self.scene.items():
+            if isinstance(item, QGraphicsSimpleTextItem):
+                self.scene.removeItem(item)
+
         self.draw_annotations(_index)
         b_top = -self.border
         b_btm = 2 * self.border
@@ -531,7 +545,9 @@ class ImageProcessor:
         :param _index:
         :return:
         """
-        blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+        # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+        blank = QPixmap(self.pixmap_img.size())
+        blank.fill(Colors.BLANK)
         self.pixmap_mask.clear()
         for key, item in self.display_mask.items():
             self.scene.removeItem(item)
@@ -540,15 +556,15 @@ class ImageProcessor:
 
         # 先加入使用者設定預設圖層
         for layer in self.default_layers:
-            self.pixmap_mask[layer] = QPixmap(blank)
+            self.pixmap_mask[layer] = blank.copy()
         # 利用 label 檔的輪廓資訊繪製遮罩
         if len(self.FM.annotations) > 0:
             try:
+                class_counter: dict = {}
                 f_name = self.FM.image_list[_index]
                 f_size = os_path.getsize(f'{self.FM.image_dir}/{f_name}')
                 f_name = f'{f_name}{f_size}'
                 a = self.FM.annotations[f_name]
-                self.UI.statusbar.showMessage(f"{len(a['regions'])} region(s) loaded")
                 # polygons = [r['shape_attributes'] for r in a['regions']]
 
                 self.cidx = 0
@@ -567,27 +583,25 @@ class ImageProcessor:
                     try:
                         self.pixmap_mask[key]
                     except KeyError:
-                        self.pixmap_mask[key] = QPixmap(blank)
+                        self.pixmap_mask[key] = blank.copy()
 
+                    class_counter[key] = len(val)
                     t = Thread(target=paint_regions_by_class(self.pixmap_mask[key], val))
                     t.start()
                     threads.append(t)
-                    # # Painting prep
-                    # self.painter = QPainter(self.pixmap_mask[key])
-                    # self.painter.setCompositionMode(QPainter.CompositionMode_Source)
-                    # for region in val:
-                    #     self.painter.setPen(QPen(region[0]))
-                    #     self.painter.setBrush(QBrush(region[0]))
-                    #     self.painter.drawPolygon(region[1])
-                    # self.painter.end()
                 for t in threads:
                     t.join()
+
+                msg = f"{len(a['regions'])} region(s) loaded. | "
+                for key, val in class_counter.items():
+                    msg += f"{val} {key}(s), "
+                self.UI.statusbar.showMessage(msg[:len(msg) - 2])
 
             except KeyError:
                 self.UI.statusbar.showMessage('No region annotated in this image')
         # 若沒有資料導入 創建預設類別圖層
         if len(self.pixmap_mask) == 0:
-            self.pixmap_mask['object'] = QPixmap(blank)
+            self.pixmap_mask['object'] = blank
         # 更新 Class 下拉式清單
         self.UI.comboBox.clear()
         for key, val in self.pixmap_mask.items():
@@ -600,7 +614,7 @@ class ImageProcessor:
         :param res:
         :return:
         """
-        area = QPolygon()
+        area: QPolygon = QPolygon()
         p = r['shape_attributes']
         for i in range(len(p['all_points_x'])):
             area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
@@ -616,6 +630,13 @@ class ImageProcessor:
             res[classname]
         except KeyError:
             res[classname] = []
+        # 顯示列別標籤
+        if self.show_tag:
+            tag = self.scene.addSimpleText(classname, QFont("AnyStyle", self.tag_size, QFont.Bold))
+            tag.setPos(area.last())
+            tag.setPen(QPen(QColor(0, 0, 0), self.tag_size / 15))
+            tag.setBrush(Colors.WHITE)
+            tag.setZValue(1)
         res[classname].append([paint_color, area])
 
     # 更新顯示遮罩
@@ -814,7 +835,9 @@ class ImageProcessor:
                                           'ZoomScale': str(self.zoom_scale),
                                           'ZoomMaxScale': str(self.zoom_max),
                                           'InvertScroll': 'False' if self.scroll_speed < 0 else 'True',
-                                          'BorderInPixels': self.border
+                                          'BorderInPixels': self.border,
+                                          'ShowClassNameTag': int(self.show_tag),
+                                          'ClassNameTagFontSize': self.tag_size
                                           }
         self.config["WorkingState"] = {'WorkingImg': str(self.FM.index),
                                        'BrushSize': str(self.brush_size),
@@ -861,6 +884,8 @@ class ImageProcessor:
         ui.lineEdit_3.setText(str(self.zoom_scale))
         ui.lineEdit_4.setText(str(self.zoom_max))
         ui.lineEdit_5.setText(str(self.border))
+        ui.lineEdit_6.setText(str(self.tag_size))
+        ui.checkBox_2.setChecked(self.show_tag)
 
         res = dialog_settings.exec()
         if res == QDialog.Accepted:
@@ -881,6 +906,9 @@ class ImageProcessor:
                 self.zoom_max = max(min(float(ui.lineEdit_4.text()), 10), 2)
             if ui.lineEdit_5.text().isdigit():
                 self.border = max(min(int(ui.lineEdit_5.text()), 1200), 10)
+            if ui.lineEdit_6.text().isdigit():
+                self.tag_size = max(min(int(ui.lineEdit_6.text()), 48), 8)
+            self.show_tag = ui.checkBox_2.isChecked()
             # update changes
             self.change_image(self.FM.index)
 
@@ -912,14 +940,19 @@ class ImageProcessor:
                                   )
                 return
 
-            blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+            # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+            blank = QPixmap(self.pixmap_img.size())
+            blank.fill(Colors.BLANK)
 
-            self.pixmap_mask[newclass] = QPixmap(blank)
+            self.pixmap_mask[newclass] = blank
             self.BM.push(newclass, self.pixmap_mask[newclass])
             self.UI.comboBox.addItem(newclass)
             self.layer_hidden[newclass] = QtCore.Qt.Unchecked
             self.UI.comboBox.setCurrentText(newclass)
             self.update_layer_state()
+            if ui.checkBox.isChecked():
+                self.default_classes += f",{newclass}"
+                self.default_layers.append(newclass)
 
     def change_paint_mode(self):
         """
@@ -940,15 +973,6 @@ class ImageProcessor:
         curr_class = self.UI.comboBox.currentText()
         self.UI.HideLayerCheckBox.setCheckState(self.layer_hidden[curr_class])
         self.update_mask(layer_highlight=True)
-        # for key, val in self.display_mask.items():
-        #     if key == curr_class:
-        #         val.setPixmap(self.pixmap_mask[key])
-        #     else:
-        #         pixmap: QPixmap = self.pixmap_mask[key].copy()
-        #         res: QPixmap = QPixmap(pixmap.size())
-        #         res.fill(Colors.SANDYBROWN)
-        #         res.setMask(pixmap.createMaskFromColor(Colors.BLANK))
-        #         val.setPixmap(res)
 
     def hide_layer(self):
         curr_class = self.UI.comboBox.currentText()
