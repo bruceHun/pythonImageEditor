@@ -132,6 +132,18 @@ font: 9pt &quot;Arial&quot;;</string>
         </item>
         <item row="0" column="0">
          <widget class="QLabel" name="labelCurrClass">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>80</width>
+            <height>0</height>
+           </size>
+          </property>
           <property name="styleSheet">
            <string notr="true">color: rgb(255, 255, 255);
 font: 9pt &quot;Arial&quot;;</string>
@@ -562,7 +574,7 @@ background-color: rgb(90, 90, 90);</string>
      <x>0</x>
      <y>0</y>
      <width>961</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="styleSheet">
@@ -587,7 +599,7 @@ selection-color: rgb(255, 170, 0);</string>
    </widget>
    <widget class="QMenu" name="menu_Edit">
     <property name="title">
-     <string>&amp;Edit</string>
+     <string>Edit</string>
     </property>
     <addaction name="action_Undo"/>
     <addaction name="action_Redo"/>

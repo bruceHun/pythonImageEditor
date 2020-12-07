@@ -5,6 +5,7 @@ from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_SIMPLE
 import numpy as np
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter
+from re import search as re_search, sub as re_sub
 
 lows: np.array = np.array([[128, 0, 0, 255],
                            [0, 128, 0, 255],
@@ -117,11 +118,11 @@ class FileManager:
                                       QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
 
         if result == QMessageBox.Yes:
-            fname = f'{self.image_list[self.index]}'
+            fname = re_sub("\\[([0-9]+)\\] ", "", self.image_list[self.index])
             try:
                 fsize = self.annotations[fname]['size']
             except KeyError:
-                fsize = os_path.getsize(f'{self.image_dir}/{self.image_list[self.index]}')
+                fsize = os_path.getsize(f'{self.image_dir}/{fname}')
             # fname = f'{fname}{fsize}'
             # 創建圖片資訊
             r = add_annotation(fname, fsize, self.annotations)
@@ -164,8 +165,8 @@ class FileManager:
                     painter.drawPixmap(0, 0, val)
                 i += 1
             painter.end()
-
-            path = f'{self.image_dir}/{self.image_list[self.index]}_mask.tif'
+            f_name = os_path.basename(re_sub("\\[([0-9]+)\\] ", "", self.image_list[self.index]))
+            path = f'{self.image_dir}/{f_name}_mask.tif'
             bit = pixmap.createMaskFromColor(QColor(0, 0, 0, 0))
             bit.save(path)
             # self.ui.statusbar.showMessage(f'Mask image saved ({path})')
