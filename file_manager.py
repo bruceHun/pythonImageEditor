@@ -92,6 +92,7 @@ class FileManager:
         self.dialog_root = _parent
 
     def get_file_lists(self, show_annotated_only: bool = False):
+        f_index = 1
         for file in os_listdir(self.image_dir):
             f_lower = file.lower()
             if f_lower.endswith('.json'):
@@ -100,10 +101,12 @@ class FileManager:
                     self.annotations = json.load(json_file)
                 if show_annotated_only:
                     for key, val in self.annotations.items():
-                        self.image_list.append(val['filename'])
+                        self.image_list.append(f"[{f_index}] {val['filename']}")
+                        f_index += 1
             if not show_annotated_only:
                 if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
-                    self.image_list.append(file)
+                    self.image_list.append(f"[{f_index}] {file}")
+                    f_index += 1
 
     def save_annotation(self, pixmap: dict):
         result = QMessageBox.question(self.dialog_root,

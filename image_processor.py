@@ -16,6 +16,7 @@ from enum import Enum
 from threading import Thread, Lock
 from typing import Union
 import csv
+import re
 
 
 class PMode(Enum):
@@ -129,7 +130,9 @@ class ImageProcessor:
         self.main_window: Union[QMainWindow, None] = None
         # 設定檔解析器
         self.config: Union[ConfigParser, None] = None
+        # 目前指派顏色序號
         self.cidx: int = 0
+        self.total_items: str = ''
 
     def init(self, is_running: bool = False, show_annotated_switch: bool = False):
         """
@@ -229,8 +232,8 @@ class ImageProcessor:
         if is_running:
             self.UI.listWidget.addItems(self.FM.image_list)
             self.change_image(0)
-        num_of_images = len(self.FM.image_list)
-        self.UI.NumOfImageslabel.setText(f' {num_of_images} item{"" if num_of_images == 1 else "s"}')
+        self.total_items = f'{len(self.FM.image_list)} item{"" if len(self.FM.image_list) == 1 else "s"}'
+        self.UI.NumOfImageslabel.setText(f' {self.FM.index + 1} / {self.total_items}')
 
     def key_event(self, e: QKeyEvent):
         """
@@ -498,8 +501,9 @@ class ImageProcessor:
 
         self.FM.index = _index
         self.UI.listWidget.setCurrentRow(_index)
-
-        self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{self.FM.image_list[_index]}')
+        self.UI.NumOfImageslabel.setText(f' {self.FM.index + 1} / {self.total_items}')
+        retrived_name = re.sub("\\[([0-9]+)\\] ", "", self.FM.image_list[_index])
+        self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{retrived_name}')
 
         if self.display_img is None:
             self.display_img = self.scene.addPixmap(self.pixmap_img)
@@ -520,7 +524,7 @@ class ImageProcessor:
         self.BM.renew_buffer(self.pixmap_mask)
         self.update_mask()
         self.UI.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
-        self.main_window.setWindowTitle(f'Mask Editor -- {self.FM.image_list[_index]}')
+        self.main_window.setWindowTitle(f'Mask Editor -- {retrived_name}')
 
         self.is_processing = False
         self.UI.FuncBtn1.setDisabled(False)
@@ -561,7 +565,7 @@ class ImageProcessor:
         if len(self.FM.annotations) > 0:
             try:
                 class_counter: dict = {}
-                f_name = self.FM.image_list[_index]
+                f_name = re.sub("\\[([0-9]+)\\] ", "", self.FM.image_list[_index])
                 f_size = os_path.getsize(f'{self.FM.image_dir}/{f_name}')
                 f_name = f'{f_name}{f_size}'
                 a = self.FM.annotations[f_name]
@@ -632,7 +636,7 @@ class ImageProcessor:
             res[classname] = []
         # 顯示列別標籤
         if self.show_tag:
-            tag = self.scene.addSimpleText(classname, QFont("AnyStyle", self.tag_size, QFont.Bold))
+            tag = self.scene.addSimpleText(classname, QFont("Cursive", self.tag_size, QFont.Bold))
             tag.setPos(area.last())
             tag.setPen(QPen(QColor(0, 0, 0), self.tag_size / 15))
             tag.setBrush(Colors.WHITE)
