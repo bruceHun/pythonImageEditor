@@ -224,8 +224,9 @@ class ImageProcessor:
         if len(csv_layers) > 0:
             for i in range(len(csv_layers[0])):
                 layer = csv_layers[0][i].replace(" ", "")
-                if not layer.isdigit():
-                    self.default_layers.append(layer)
+                # if not layer.isdigit():
+                #     self.default_layers.append(layer)
+                self.default_layers.append(layer)
 
         # 列出圖片檔名
         self.FM.get_file_lists(self.UI.action_Show_annotated.isChecked())
@@ -937,12 +938,12 @@ class ImageProcessor:
                                   f'Class "{newclass}" already exists'
                                   )
                 return
-            elif newclass.isdigit():
-                QMessageBox.about(self.FM.dialog_root,
-                                  "Class name invalid",
-                                  "Class name should not be a number"
-                                  )
-                return
+            # elif newclass.isdigit():
+            #     QMessageBox.about(self.FM.dialog_root,
+            #                       "Class name invalid",
+            #                       "Class name should not be a number"
+            #                       )
+            #     return
 
             # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
             blank = QPixmap(self.pixmap_img.size())
