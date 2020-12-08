@@ -1,91 +1,204 @@
 import os
 
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QPolygon, QPen, QPainterPath, QPolygonF, QWheelEvent, QTransform, QKeyEvent, QColor, \
+    QKeySequence
+from PyQt5.QtWidgets import QFileDialog, QGraphicsPathItem, QTableWidgetItem, QTableWidget, QHeaderView
+from PyQt5.QtCore import Qt, QPoint, QPointF
 
 from viaorganizer import Ui_MainWindow
 from anno_info import Ui_Form
 from PyQt5 import QtWidgets
 from typing import Union
+from configparser import ConfigParser, NoOptionError
 import json
+
+colors = {
+    'Red': QColor(255, 0, 0),
+    'Green': QColor(0, 255, 0),
+    'Blue': QColor(0, 0, 255),
+    'Yellow': QColor(255, 255, 0),
+    'Fuchsia': QColor(255, 0, 255),
+    'Aqua': QColor(0, 255, 255),
+}
 
 
 class ViaOrganizer:
 
     def __init__(self, _ui: Ui_MainWindow, _win: QtWidgets.QMainWindow):
         self.UI: Ui_MainWindow = _ui
-        self.Form1: Union[Ui_Form, None] = None
-        self.Form2: Union[Ui_Form, None] = None
-        self.Form1Preview: Union[QPixmap, None] = None
-        self.Form2Preview: Union[QPixmap, None] = None
+        self.Form: list = [None, None]
+        self.FormPreview: Union[QPixmap, None] = None
         self.win: QtWidgets.QMainWindow = _win
         self.directory: str = ''
-        self.json_in = {}
+        self.json_in = [{}, {}]
         self.scene: Union[QtWidgets.QGraphicsScene, None] = None
+        self.mark: list = []
+        self.config: Union[ConfigParser, None] = None
+        self.zoom: float = 1.0
+        self.on_form: int = 1
 
     def init(self):
-        # 指定圖片資料夾
-        self.directory = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-        # 開 JSON 檔
-        f_name, f_type = QFileDialog.getOpenFileName(filter="JSON files (*.json)")
-        with open(f_name, 'r') as json_file:
-            self.json_in = json.load(json_file)
-        print(len(self.json_in))
-        sub = QtWidgets.QMdiSubWindow()
-        form = QtWidgets.QWidget()
-        self.Form1 = Ui_Form()
-        self.Form1.setupUi(form)
-        sub.setWidget(form)
-        self.UI.mdiArea.addSubWindow(sub)
-        sub.show()
+        self.config = ConfigParser()
+        self.config.optionxform = str
+        try:
+            settings = open("viaorg_settings.ini", "r")
+            settings.close()
+            self.config.read("viaorg_settings.ini")
+            self.directory = self.config.get("GeneralSettings", 'ImageDir')
+            f_name = [self.config.get("GeneralSettings", 'Source'), self.config.get("GeneralSettings", 'Destination')]
+
+        except (FileNotFoundError, NoOptionError):
+            # 指定圖片資料夾
+            self.directory = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
+            # 開 JSON 檔
+            res1, f_type = QFileDialog.getOpenFileName(caption='Select Destination file', filter="JSON files (*.json)")
+            res2, f_type = QFileDialog.getOpenFileName(caption='Select Source file', filter="JSON files (*.json)")
+            f_name = [res1, res2]
+
+            self.config["GeneralSettings"] = {'ImageDir': self.directory,  # 圖片資料夾
+                                              'Source': f_name[0],
+                                              'Destination': f_name[1]
+                                              }
+            with open('viaorg_settings.ini', 'w') as file:
+                self.config.write(file)
+
+        for i in range(2):
+            with open(f_name[i], 'r') as json_file:
+                self.json_in[i] = json.load(json_file)
+            print(len(self.json_in[i]))
+        for i in range(2):
+            sub = QtWidgets.QMdiSubWindow()
+            form = QtWidgets.QWidget()
+            self.Form[i]: Ui_Form = Ui_Form()
+            self.Form[i].setupUi(form)
+            sub.setWidget(form)
+            self.UI.mdiArea.addSubWindow(sub)
+            title = 'Source' if i == 1 else 'Destination'
+            sub.setWindowTitle(title)
+            sub.show()
+
+        self.UI.mdiArea.tileSubWindows()
         # Populate ListWidget
-        for i, filename in enumerate(self.json_in):
-            # self.UI.listWidget.addItem(filename)
-            self.Form1.listWidget.addItem(filename)
+        for i in range(2):
+            for j, filename in enumerate(self.json_in[i]):
+                # self.UI.listWidget.addItem(filename)
+                self.Form[i].listWidget.addItem(filename)
+            if self.Form[i].listWidget.count() > 0:
+                self.Form[i].listWidget.setCurrentRow(0)
 
         self.scene = QtWidgets.QGraphicsScene()
         self.UI.graphicsView.setScene(self.scene)
 
-        self.Form1.listWidget.setCurrentRow(0)
-        self.form1_change_preview()
+        self.update_preview(0)
+
+        self.UI.centralwidget.keyPressEvent = self.key_event
+        self.UI.graphicsView.wheelEvent = self.wheel_event
+        # self.Form[0].listWidget_2.mousePressEvent = self.click_on_dest
+        # self.Form[1].listWidget_2.mousePressEvent = self.click_on_src
 
         # UI 功能連結
         self.UI.action_Save.triggered.connect(self.save_file)
         self.UI.action_Delete.triggered.connect(self.delete_selected_rows)
         self.UI.actionConvert_to_simple_name.triggered.connect(self.convert_to_simple_naming)
         self.UI.actionConvert_to_VIA_naming.triggered.connect(self.convert_to_VIA_naming)
-
-        self.Form1.listWidget.currentRowChanged.connect(self.form1_change_preview)
-        self.Form1.listWidget_2.currentRowChanged.connect(self.form1_show_attribute)
+        self.Form[0].listWidget.currentRowChanged.connect(lambda: self.update_preview(0))
+        self.Form[0].listWidget_2.currentRowChanged.connect(lambda: self.show_attribute(0))
+        self.Form[1].listWidget.currentRowChanged.connect(lambda: self.update_preview(1))
+        self.Form[1].listWidget_2.currentRowChanged.connect(lambda: self.show_attribute(1))
 
     # 更新預覽
-    def form1_change_preview(self):
-        curr_idx = self.Form1.listWidget.currentRow()
-        curr_text = self.Form1.listWidget.item(curr_idx).text()
-        f_name = f'{self.directory}/{curr_text}'
-        base_name, extension = os.path.splitext(f_name)
-        extension = ''.join(c for c in extension if not c.isdigit())
-        f_name = f'{base_name}{extension}'
-        if self.Form1Preview is None:
-            self.Form1Preview = self.scene.addPixmap(QPixmap(f_name))
+    def update_preview(self, idx: int):
+        self.on_form = idx
+        curr_text = self.Form[idx].listWidget.currentItem().text()
+        f_name = f"{self.directory}/{self.json_in[idx][curr_text]['filename']}"
+        if self.FormPreview is None:
+            self.FormPreview = self.scene.addPixmap(QPixmap(f_name))
         else:
-            self.Form1Preview.setPixmap(QPixmap(f_name))
-        self.UI.graphicsView.fitInView(self.Form1Preview, Qt.KeepAspectRatio)
+            self.FormPreview.setPixmap(QPixmap(f_name))
+        self.UI.graphicsView.fitInView(self.FormPreview, Qt.KeepAspectRatio)
+        self.zoom = self.UI.graphicsView.viewportTransform().m11()
 
         # Populate ListWidget
-        for i, region in enumerate(self.json_in[curr_text]['regions']):
-            print(i, region['region_attributes'])
+        self.Form[idx].listWidget_2.clear()
+        # self.Form[idx].listWidget_3.clear()
+        self.Form[idx].tableWidget.clear()
+        for i, region in enumerate(self.json_in[idx][curr_text]['regions']):
+            # print(i, region['region_attributes'])
             # self.UI.listWidget.addItem(filename)
-            self.Form1.listWidget_2.addItem(str(i))
+            self.Form[idx].listWidget_2.addItem(str(i))
 
-    def form1_show_attribute(self):
-        curr_idx = self.Form1.listWidget_2.currentRow()
+        for mk in self.mark:
+            self.scene.removeItem(mk)
+        self.mark.clear()
+        for curr_idx in range(self.Form[idx].listWidget_2.count()):
+            area: QPolygonF = QPolygonF()
+            p = self.json_in[idx][curr_text]['regions'][curr_idx]['shape_attributes']
+            for i in range(len(p['all_points_x'])):
+                area.append(QPointF(p['all_points_x'][i], p['all_points_y'][i]))
+            path = QPainterPath()
+            path.addPolygon(area)
+            path.closeSubpath()
+            try:
+                cid = self.json_in[idx][curr_text]['regions'][curr_idx]['region_attributes']['Color']
+                color = colors[cid]
+            except KeyError:
+                color = Qt.yellow
+            self.mark.append(self.scene.addPath(path, QPen(color, 5)))
+
+    def show_attribute(self, idx: int):
+        if self.on_form != idx:
+            self.update_preview(idx)
+        curr_idx = self.Form[idx].listWidget_2.currentRow()
+        if curr_idx < 0:
+            # self.Form[idx].listWidget_3.addItem('N/A')
+            return
+        curr_text = self.Form[idx].listWidget.currentItem().text()
+        self.UI.graphicsView.fitInView(self.mark[curr_idx], Qt.KeepAspectRatio)
+        self.zoom = self.UI.graphicsView.viewportTransform().m11()
         # Populate ListWidget
-        self.Form1.listWidget_3.clear()
-        for i, attr in enumerate(self.json_in[self.Form1.listWidget.currentItem().text()]['regions'][curr_idx]['region_attributes']):
-            # self.UI.listWidget.addItem(filename)
-            self.Form1.listWidget_3.addItem(attr)
+        # self.Form[idx].listWidget_3.clear()
+        table: QTableWidget = self.Form[idx].tableWidget
+        table.clear()
+        table.setHorizontalHeaderLabels(['Attr', 'Value'])
+        r = self.json_in[idx][curr_text]['regions'][curr_idx]['region_attributes']
+        table.setRowCount(len(r))
+        table.setColumnCount(2)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+        for i, attr in enumerate(r):
+            # self.Form[idx].listWidget_3.addItem(f"{attr}: {r[attr]}")
+            table.setItem(i, 0, QTableWidgetItem(attr))
+            table.setItem(i, 1, QTableWidgetItem(r[attr]))
+        table.show()
+
+    def key_event(self, e: QKeyEvent):
+        key = e.key()
+        if key == Qt.Key_Plus or key == Qt.Key_Equal:
+            self.zoom_preview(0.1)
+        elif key == Qt.Key_Minus:
+            self.zoom_preview(-0.1)
+
+    def wheel_event(self, e: QWheelEvent):
+        keyname = QKeySequence(e.modifiers()).toString()
+        if keyname == "Ctrl+":
+            delta: Union[QPoint, float] = e.pixelDelta()
+            # if delta is None or delta.y() == 0:
+            #     delta = e.angleDelta() / 10
+            delta /= 10
+            self.zoom_preview(delta.y())
+
+    def zoom_preview(self, delta_y: float):
+        m: QTransform = QTransform()
+        self.zoom = max(min(self.zoom + delta_y, 10), 0.01)
+        m.scale(self.zoom, self.zoom)
+        # print(delta_y, self.zoom)
+        self.UI.graphicsView.setTransform(m)
+
+    def click_on_dest(self, e):
+        print('click_on_destination')
+
+    def click_on_src(self, e):
+        print('click_on_source')
 
     # 另存異動後 JSON 檔案
     def save_file(self):

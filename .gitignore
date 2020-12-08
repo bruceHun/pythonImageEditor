@@ -1,5 +1,6 @@
 images/
 settings.ini
+viaorg_settings.ini
 .DS_Store
 *.spec
 # Byte-compiled / optimized / DLL files

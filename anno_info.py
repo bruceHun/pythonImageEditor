@@ -18,16 +18,31 @@ class Ui_Form(object):
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout(Form)
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.listWidget = QtWidgets.QListWidget(Form)
+        self.listWidget.setAcceptDrops(True)
+        self.listWidget.setDragEnabled(True)
+        self.listWidget.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.listWidget.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.listWidget.setObjectName("listWidget")
         self.horizontalLayout_3.addWidget(self.listWidget)
         self.verticalLayout = QtWidgets.QVBoxLayout()
         self.verticalLayout.setObjectName("verticalLayout")
+        self.label = QtWidgets.QLabel(Form)
+        self.label.setObjectName("label")
+        self.verticalLayout.addWidget(self.label)
         self.listWidget_2 = QtWidgets.QListWidget(Form)
+        self.listWidget_2.setDragEnabled(True)
+        self.listWidget_2.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.listWidget_2.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.listWidget_2.setObjectName("listWidget_2")
         self.verticalLayout.addWidget(self.listWidget_2)
-        self.listWidget_3 = QtWidgets.QListWidget(Form)
-        self.listWidget_3.setObjectName("listWidget_3")
-        self.verticalLayout.addWidget(self.listWidget_3)
+        self.label_2 = QtWidgets.QLabel(Form)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.tableWidget = QtWidgets.QTableWidget(Form)
+        self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setColumnCount(0)
+        self.tableWidget.setRowCount(0)
+        self.verticalLayout.addWidget(self.tableWidget)
         self.horizontalLayout_3.addLayout(self.verticalLayout)
 
         self.retranslateUi(Form)
@@ -36,6 +51,8 @@ class Ui_Form(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
+        self.label.setText(_translate("Form", "Index:"))
+        self.label_2.setText(_translate("Form", "Attribute(s):"))
 
 
 if __name__ == "__main__":
