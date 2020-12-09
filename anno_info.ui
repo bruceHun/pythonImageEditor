@@ -16,6 +16,9 @@
   <layout class="QHBoxLayout" name="horizontalLayout_3">
    <item>
     <widget class="QListWidget" name="listWidget">
+     <property name="focusPolicy">
+      <enum>Qt::ClickFocus</enum>
+     </property>
      <property name="acceptDrops">
       <bool>true</bool>
      </property>
@@ -66,7 +69,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QTableWidget" name="tableWidget"/>
+      <widget class="QTableWidget" name="tableWidget">
+       <property name="focusPolicy">
+        <enum>Qt::ClickFocus</enum>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

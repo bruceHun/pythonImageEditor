@@ -88,7 +88,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">
@@ -110,7 +110,15 @@
     <addaction name="actionConvert_to_VIA_naming"/>
     <addaction name="separator"/>
     <addaction name="actionZoom_In"/>
-    <addaction name="actionZoom_out"/>
+    <addaction name="actionZoom_Out"/>
+    <addaction name="separator"/>
+    <addaction name="actionPrevAnnotation"/>
+    <addaction name="actionNextAnnotation"/>
+    <addaction name="separator"/>
+    <addaction name="actionPrev_Region"/>
+    <addaction name="actionNext_Region"/>
+    <addaction name="separator"/>
+    <addaction name="actionSwitch_Tab"/>
    </widget>
    <widget class="QMenu" name="menu_Quit">
     <property name="title">
@@ -169,12 +177,52 @@
     <string>=</string>
    </property>
   </action>
-  <action name="actionZoom_out">
+  <action name="actionZoom_Out">
    <property name="text">
-    <string>Zoom out</string>
+    <string>Zoom Out</string>
    </property>
    <property name="shortcut">
     <string>-</string>
+   </property>
+  </action>
+  <action name="actionNextAnnotation">
+   <property name="text">
+    <string>Next Annotation</string>
+   </property>
+   <property name="shortcut">
+    <string>Right</string>
+   </property>
+  </action>
+  <action name="actionPrevAnnotation">
+   <property name="text">
+    <string>Prev Annotation</string>
+   </property>
+   <property name="shortcut">
+    <string>Left</string>
+   </property>
+  </action>
+  <action name="actionPrev_Region">
+   <property name="text">
+    <string>Prev Region</string>
+   </property>
+   <property name="shortcut">
+    <string>Up</string>
+   </property>
+  </action>
+  <action name="actionNext_Region">
+   <property name="text">
+    <string>Next Region</string>
+   </property>
+   <property name="shortcut">
+    <string>Down</string>
+   </property>
+  </action>
+  <action name="actionSwitch_Tab">
+   <property name="text">
+    <string>Switch Tab</string>
+   </property>
+   <property name="shortcut">
+    <string>/</string>
    </property>
   </action>
  </widget>

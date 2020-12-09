@@ -1,7 +1,7 @@
 from PyQt5.QtGui import QPixmap, QPolygon, QPen, QPainterPath, QPolygonF, QWheelEvent, QTransform, QKeyEvent, QColor, \
     QKeySequence, QDropEvent
 from PyQt5.QtWidgets import QFileDialog, QGraphicsPathItem, QTableWidgetItem, QTableWidget, QHeaderView, QMessageBox, \
-    QListWidget
+    QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt, QPoint, QPointF, pyqtSignal, QObject
 
 from viaorganizer import Ui_MainWindow
@@ -31,6 +31,7 @@ class ViaOrganizer:
         self.win: QtWidgets.QMainWindow = _win
         self.directory: str = ''
         self.json_in = [{}, {}]
+        self.sub = [None, None]
         self.scene: Union[QtWidgets.QGraphicsScene, None] = None
         self.mark: list = []
         self.config: Union[ConfigParser, None] = None
@@ -73,15 +74,15 @@ class ViaOrganizer:
                 self.json_in[i] = json.load(json_file)
             print(len(self.json_in[i]))
         for i in [1, 0]:
-            sub = QtWidgets.QMdiSubWindow(flags=Qt.CustomizeWindowHint)
+            self.sub[i] = QtWidgets.QMdiSubWindow(flags=Qt.CustomizeWindowHint)
             form = QtWidgets.QWidget()
             self.Form[i]: Ui_Form = Ui_Form()
             self.Form[i].setupUi(form)
-            sub.setWidget(form)
-            self.UI.mdiArea.addSubWindow(sub)
+            self.sub[i].setWidget(form)
+            self.UI.mdiArea.addSubWindow(self.sub[i])
             title = 'Source' if i == 1 else 'Destination'
-            sub.setWindowTitle(title)
-            sub.show()
+            self.sub[i].setWindowTitle(title)
+            self.sub[i].show()
 
         self.UI.mdiArea.tileSubWindows()
         # Populate ListWidget
@@ -110,14 +111,17 @@ class ViaOrganizer:
         f1.listWidget_2.dropEvent = self.drop_region_src_to_des
         f1.listWidget.keyPressEvent = self.f1_anno_key_event
         f1.listWidget_2.keyPressEvent = self.f1_region_key_event
-        # self.Form[0].listWidget_2.mousePressEvent = self.click_on_dest
-        # self.Form[1].listWidget_2.mousePressEvent = self.click_on_src
 
         # UI 功能連結
         self.UI.action_Save.triggered.connect(self.save_file)
         self.UI.action_Delete.triggered.connect(self.delete_selected_annotations)
         self.UI.actionZoom_In.triggered.connect(lambda: self.zoom_preview(0.1))
         self.UI.actionZoom_Out.triggered.connect(lambda: self.zoom_preview(-0.1))
+        self.UI.actionPrevAnnotation.triggered.connect(lambda: self.change_annotation(-1))
+        self.UI.actionNextAnnotation.triggered.connect(lambda: self.change_annotation(1))
+        self.UI.actionPrev_Region.triggered.connect(lambda: self.change_region(-1))
+        self.UI.actionNext_Region.triggered.connect(lambda: self.change_region(1))
+        self.UI.actionSwitch_Tab.triggered.connect(self.UI.mdiArea.activateNextSubWindow)
         # self.UI.actionConvert_to_simple_name.triggered.connect(self.convert_to_simple_naming)
         self.UI.actionConvert_to_VIA_naming.triggered.connect(self.convert_to_VIA_naming)
         self.Form[0].listWidget.currentRowChanged.connect(lambda: self.update_preview(0))
@@ -149,7 +153,7 @@ class ViaOrganizer:
             # print(i, region['region_attributes'])
             # self.UI.listWidget.addItem(filename)
             self.Form[idx].listWidget_2.addItem(str(i))
-        form.listWidget_2.setCurrentRow(0)
+        form.listWidget_2.setCurrentRow(-1)
 
         self.UI.graphicsView.fitInView(self.FormPreview, Qt.KeepAspectRatio)
         self.zoom = self.UI.graphicsView.viewportTransform().m11()
@@ -225,10 +229,12 @@ class ViaOrganizer:
                                               QMessageBox.Yes | QMessageBox.No)
                 if result == QMessageBox.No:
                     return
+            else:
+                super(QListWidget, f1.listWidget).dropEvent(e)
 
-                self.json_in[0][in_text] = deepcopy(self.json_in[1][in_text])
-                print('drop accepted')
-                self.update_preview(0)
+            self.json_in[0][in_text] = deepcopy(self.json_in[1][in_text])
+            print('drop accepted')
+            self.update_preview(0)
         else:
             print('drop denied')
 
@@ -262,10 +268,24 @@ class ViaOrganizer:
 
     def zoom_preview(self, delta_y: float):
         m: QTransform = QTransform()
-        self.zoom = max(min(self.zoom + delta_y, 10), 0.01)
+        self.zoom = max(min(self.zoom + delta_y, 10.0), 0.01)
         m.scale(self.zoom, self.zoom)
         # print(delta_y, self.zoom)
         self.UI.graphicsView.setTransform(m)
+
+    def change_annotation(self, step: int):
+        idx = 0 if self.UI.mdiArea.activeSubWindow() == self.sub[0] else 1
+        form: Ui_Form = self.Form[idx]
+        curr_row = form.listWidget.currentRow()
+        end = form.listWidget.count() - 1
+        form.listWidget.setCurrentRow(max(min(curr_row + step, end), 0))
+
+    def change_region(self, step: int):
+        idx = 0 if self.UI.mdiArea.activeSubWindow() == self.sub[0] else 1
+        form: Ui_Form = self.Form[idx]
+        curr_row = form.listWidget_2.currentRow()
+        end = form.listWidget_2.count() - 1
+        form.listWidget_2.setCurrentRow(max(min(curr_row + step, end), 0))
 
     def f1_anno_key_event(self, e: QKeyEvent):
         # super(QListWidget, self.Form[0].listWidget).keyPressEvent(e)
@@ -313,10 +333,10 @@ class ViaOrganizer:
     def delete_selected_regions(self):
         print('delete regions')
         f1: Ui_Form = self.Form[0]
-        f1.listWidget_2.takeItem(f1.listWidget_2.currentRow())
         r: list = self.json_in[0][f1.listWidget.currentItem().text()]['regions']
         ridx = f1.listWidget_2.currentRow()
         r.pop(ridx)
+        f1.listWidget_2.takeItem(f1.listWidget_2.currentRow())
         self.update_preview(0)
 
     def convert_to_simple_naming(self):
