@@ -28,6 +28,9 @@
      <property name="defaultDropAction">
       <enum>Qt::MoveAction</enum>
      </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
     </widget>
    </item>
    <item>
@@ -41,6 +44,9 @@
      </item>
      <item>
       <widget class="QListWidget" name="listWidget_2">
+       <property name="focusPolicy">
+        <enum>Qt::ClickFocus</enum>
+       </property>
        <property name="dragEnabled">
         <bool>true</bool>
        </property>
