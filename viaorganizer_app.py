@@ -162,10 +162,10 @@ class ViaOrganizer:
             self.scene.removeItem(mk)
         self.mark.clear()
         for curr_idx in range(form.listWidget_2.count()):
-            area: QPolygonF = QPolygonF()
+
             p = self.json_in[idx][curr_text]['regions'][curr_idx]['shape_attributes']
-            for i in range(len(p['all_points_x'])):
-                area.append(QPointF(p['all_points_x'][i], p['all_points_y'][i]))
+            points = [QPointF(p['all_points_x'][i], p['all_points_y'][i]) for i in range(len(p['all_points_x']))]
+            area: QPolygonF = QPolygonF(points)
             path = QPainterPath()
             path.addPolygon(area)
             path.closeSubpath()
