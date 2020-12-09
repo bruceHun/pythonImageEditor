@@ -44,6 +44,7 @@ class MaskEditor:
         # 功能表
         self.UI.action_Open.triggered.connect(lambda: self.IP.init(True))
         self.UI.action_Export_to_Mask.triggered.connect(self.IP.save_mask)
+        self.UI.actionExport_All.triggered.connect(self.IP.export_all)
         self.UI.action_Save.triggered.connect(self.IP.refresh_masks)
         self.UI.action_Settings.triggered.connect(self.IP.change_settings)
         self.UI.action_Quit.triggered.connect(self.win.close)

@@ -314,12 +314,15 @@ class Ui_MainWindow(object):
         self.action_Show_annotated = QtWidgets.QAction(MainWindow)
         self.action_Show_annotated.setCheckable(True)
         self.action_Show_annotated.setObjectName("action_Show_annotated")
+        self.actionExport_All = QtWidgets.QAction(MainWindow)
+        self.actionExport_All.setObjectName("actionExport_All")
         self.menu_File.addAction(self.action_Open)
         self.menu_File.addAction(self.action_Save)
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.action_Settings)
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.action_Export_to_Mask)
+        self.menu_File.addAction(self.actionExport_All)
         self.menu_File.addSeparator()
         self.menu_File.addAction(self.action_Quit)
         self.menu_Edit.addAction(self.action_Undo)
@@ -377,6 +380,7 @@ class Ui_MainWindow(object):
         self.action_Select_Polygon.setText(_translate("MainWindow", "&Select Polygon"))
         self.action_Select_Polygon.setShortcut(_translate("MainWindow", "S"))
         self.action_Show_annotated.setText(_translate("MainWindow", "Show &annotated"))
+        self.actionExport_All.setText(_translate("MainWindow", "Export All"))
 
 
 if __name__ == "__main__":

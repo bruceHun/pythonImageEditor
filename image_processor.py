@@ -503,8 +503,8 @@ class ImageProcessor:
         self.FM.index = _index
         self.UI.listWidget.setCurrentRow(_index)
         self.UI.NumOfImageslabel.setText(f' {self.FM.index + 1} / {self.total_items}')
-        retrived_name = re.sub("\\[([0-9]+)\\] ", "", self.FM.image_list[_index])
-        self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{retrived_name}')
+        retrieved_name = re.sub("\\[([0-9]+)\\] ", "", self.FM.image_list[_index])
+        self.pixmap_img = QPixmap(f'{self.FM.image_dir}/{retrieved_name}')
 
         if self.display_img is None:
             self.display_img = self.scene.addPixmap(self.pixmap_img)
@@ -525,7 +525,7 @@ class ImageProcessor:
         self.BM.renew_buffer(self.pixmap_mask)
         self.update_mask()
         self.UI.graphicsView.fitInView(self.display_img, QtCore.Qt.KeepAspectRatio)
-        self.main_window.setWindowTitle(f'Mask Editor -- {retrived_name}')
+        self.main_window.setWindowTitle(f'Mask Editor -- {retrieved_name}')
 
         self.is_processing = False
         self.UI.FuncBtn1.setDisabled(False)
@@ -987,3 +987,6 @@ class ImageProcessor:
         else:
             self.display_mask[curr_class].show()
             self.layer_hidden[curr_class] = QtCore.Qt.Unchecked
+
+    def export_all(self):
+        self.FM.export_all()

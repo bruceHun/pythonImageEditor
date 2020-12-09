@@ -1,10 +1,12 @@
 from os import path as os_path, remove as os_remove, listdir as os_listdir
 import json
 from threading import Thread
+
+from PyQt5.QtCore import QPoint
 from cv2 import inRange, threshold, findContours, RETR_TREE, CHAIN_APPROX_SIMPLE
 import numpy as np
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter
+from PyQt5.QtGui import QImage, QPixmap, QColor, QPainter, QPolygon, QPen, QBrush
 from re import search as re_search, sub as re_sub
 
 lows: np.array = np.array([[128, 0, 0, 255],
@@ -188,3 +190,35 @@ class FileManager:
         if result == QMessageBox.Yes:
             os_remove(path)
 
+    def export_all(self):
+
+        _index = 0
+        for data in self.annotations.values():
+            retrieved_name = re_sub("\\[([0-9]+)\\] ", "", self.image_list[_index])
+            f_name = f'{self.image_dir}/{retrieved_name}'
+            pix = QPixmap(f_name)
+            print(f_name)
+
+            # Making mask
+            blank = QPixmap(pix.size())
+            blank.fill(QColor(0, 0, 0, 0))
+            del pix
+
+            painter = QPainter(blank)
+            painter.setPen(QPen(QColor(255, 255, 255, 255)))
+            painter.setBrush(QBrush(QColor(255, 255, 255, 255)))
+
+            for r in data["regions"]:
+                p = r['shape_attributes']
+                points = [QPoint(p['all_points_x'][i], p['all_points_y'][i]) for i in range(len(p['all_points_x']))]
+                painter.drawPolygon(QPolygon(points))
+
+            painter.end()
+
+            # Generate mask image
+            mask_image = blank.createMaskFromColor(QColor(0, 0, 0, 0))
+            # Save output
+            file_name = self.image_dir + '/' + os_path.basename(f_name) + "_mask.tif"
+            mask_image.save(file_name)
+            print("Saved to ", file_name)
+            _index += 1
