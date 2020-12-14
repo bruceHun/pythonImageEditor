@@ -24,7 +24,7 @@ highs: np.array = np.array([[255, 0, 0, 255],
                             [0, 255, 255, 255]])
 
 # Rearrange order to subtly convert RGB to BGR
-colorid = ['Blue', 'Green', 'Red', 'Aqua', 'Fuchsia', 'Yellow']
+colorid = ['Blue', 'Green', 'Red', 'Cyan', 'Magenta', 'Yellow']
 
 
 def get_contours(pixmap: QPixmap):
@@ -193,11 +193,11 @@ class FileManager:
     def export_all(self):
 
         _index = 0
-        for data in self.annotations.values():
-            retrieved_name = re_sub("\\[([0-9]+)\\] ", "", self.image_list[_index])
+        for key, data in self.annotations.items():
+            # retrieved_name = re_sub("\\[([0-9]+)\\] ", "", self.image_list[_index])
+            retrieved_name = self.annotations[key]['filename']
             f_name = f'{self.image_dir}/{retrieved_name}'
             pix = QPixmap(f_name)
-            print(f_name)
 
             # Making mask
             blank = QPixmap(pix.size())
@@ -218,7 +218,9 @@ class FileManager:
             # Generate mask image
             mask_image = blank.createMaskFromColor(QColor(0, 0, 0, 0))
             # Save output
-            file_name = self.image_dir + '/' + os_path.basename(f_name) + "_mask.tif"
+            file_name = os_path.splitext(f_name)[0] + "_mask.tif"
             mask_image.save(file_name)
             print("Saved to ", file_name)
             _index += 1
+
+        print('All Done')

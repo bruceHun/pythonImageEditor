@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QFileDialog, QM
     QMessageBox, QGraphicsPathItem, QGraphicsSimpleTextItem
 from PyQt5.QtGui import QPixmap, QBitmap, QPainter, QColor, QBrush, QImage, QPen, QKeySequence, QMouseEvent, \
     QKeyEvent, QWheelEvent, QPolygon, QPolygonF, QPainterPath, QCursor, QFont
+from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
 from mainwindow import Ui_MainWindow
 from image_buffer_module import ImageBufferManager
@@ -32,33 +33,19 @@ class MMode(Enum):
 
 @dataclass
 class Colors:
-    BLANK = QColor(0, 0, 0, 0)
-    RED = QColor(255, 0, 0, 255)
-    GREEN = QColor(0, 255, 0, 255)
-    BLUE = QColor(0, 0, 255, 255)
-    YELLOW = QColor(255, 255, 0, 255)
-    FUCHSIA = QColor(255, 0, 255, 255)
-    AQUA = QColor(0, 255, 255, 255)
-    DRED = QColor(128, 0, 0, 255)
-    DGREEN = QColor(0, 128, 0, 255)
-    DBLUE = QColor(0, 0, 128, 255)
-    DYELLOW = QColor(128, 128, 0, 255)
-    DFUCHSIA = QColor(128, 0, 128, 255)
-    DAQUA = QColor(0, 128, 128, 255)
-    WHITE = QColor(255, 255, 255, 255)
     ORANGE = QColor(255, 165, 0, 255)
     SANDYBROWN = QColor(244, 164, 96, 255)
 
 
 label_colors: list = [
-                    Colors.RED,
-                    Colors.GREEN,
-                    Colors.BLUE,
-                    Colors.YELLOW,
-                    Colors.FUCHSIA,
-                    Colors.AQUA
+                    Qt.red,
+                    Qt.green,
+                    Qt.blue,
+                    Qt.yellow,
+                    Qt.magenta,
+                    Qt.cyan
                 ]
-nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5}
+nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5, 'Magenta': 4, 'Cyan': 5}
 MOD_MASK = (QtCore.Qt.CTRL | QtCore.Qt.ALT | QtCore.Qt.SHIFT | QtCore.Qt.META)
 
 
@@ -552,7 +539,7 @@ class ImageProcessor:
         """
         # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
         blank = QPixmap(self.pixmap_img.size())
-        blank.fill(Colors.BLANK)
+        blank.fill(Qt.transparent)
         self.pixmap_mask.clear()
         for key, item in self.display_mask.items():
             self.scene.removeItem(item)
@@ -640,7 +627,7 @@ class ImageProcessor:
             tag = self.scene.addSimpleText(classname, QFont("Cursive", self.tag_size, QFont.Bold))
             tag.setPos(area.last())
             tag.setPen(QPen(QColor(0, 0, 0), self.tag_size / 15))
-            tag.setBrush(Colors.WHITE)
+            tag.setBrush(Qt.white)
             tag.setZValue(1)
         res[classname].append([paint_color, area])
 
@@ -675,7 +662,7 @@ class ImageProcessor:
         else:
             pixmap: QPixmap = QPixmap(val.size())
             pixmap.fill(Colors.SANDYBROWN)
-            pixmap.setMask(val.createMaskFromColor(Colors.BLANK))
+            pixmap.setMask(val.createMaskFromColor(Qt.transparent))
 
         try:
             self.display_mask[key].setPixmap(pixmap)
@@ -789,7 +776,7 @@ class ImageProcessor:
             curr_pos = self.brush_cursor.pos()
             self.scene.removeItem(self.brush_cursor)
         if self.erase_mode:
-            brush_color = Colors.WHITE
+            brush_color = Qt.white
         else:
             brush_color = label_colors[self.label_color]
         pen = QPen(brush_color)
@@ -813,15 +800,15 @@ class ImageProcessor:
         self.UI.EraserBtn.setStyleSheet("background-color: rgb(255, 255, 255); font: 9pt 'Arial';")
         if self.label_color == 0:
             self.UI.ColorBtn1.setStyleSheet("background-color: rgb(128, 0, 0);")
-        elif self.label_color  == 1:
+        elif self.label_color == 1:
             self.UI.ColorBtn2.setStyleSheet("background-color: rgb(0, 128, 0);")
-        elif self.label_color  == 2:
+        elif self.label_color == 2:
             self.UI.ColorBtn3.setStyleSheet("background-color: rgb(0, 0, 128);")
-        elif self.label_color  == 3:
+        elif self.label_color == 3:
             self.UI.ColorBtn4.setStyleSheet("background-color: rgb(128, 128, 0);")
-        elif self.label_color  == 4:
+        elif self.label_color == 4:
             self.UI.ColorBtn5.setStyleSheet("background-color: rgb(128, 0, 128);")
-        elif self.label_color  == 5:
+        elif self.label_color == 5:
             self.UI.ColorBtn6.setStyleSheet("background-color: rgb(0, 128, 128);")
         self.gen_brush()
 
