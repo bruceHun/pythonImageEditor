@@ -96,17 +96,20 @@ class FileManager:
 
     def get_file_lists(self, show_annotated_only: bool = False):
         f_index = 1
-        for file in os_listdir(self.image_dir):
-            f_lower = file.lower()
-            if f_lower.endswith('.json'):
-                self.via_fname = f'{self.image_dir}/{file}'
-                with open(self.via_fname, 'r') as json_file:
-                    self.annotations = json.load(json_file)
-                if show_annotated_only:
-                    for key, val in self.annotations.items():
-                        self.image_list.append(f"[{f_index}] {val['filename']}")
-                        f_index += 1
-            if not show_annotated_only:
+        try:
+            with open(self.via_fname, 'r') as json_file:
+                self.annotations = json.load(json_file)
+        except FileNotFoundError:
+            self.via_fname = ''
+            self.annotations = {}
+
+        if show_annotated_only:
+            for key, val in self.annotations.items():
+                self.image_list.append(f"[{f_index}] {val['filename']}")
+                f_index += 1
+        else:
+            for file in os_listdir(self.image_dir):
+                f_lower = file.lower()
                 if f_lower.endswith('.jpg') or f_lower.endswith('.png'):
                     self.image_list.append(f"[{f_index}] {file}")
                     f_index += 1

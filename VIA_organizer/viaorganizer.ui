@@ -95,8 +95,13 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="action_Open"/>
+    <addaction name="actionOpen_Image_Directory"/>
+    <addaction name="actionOpen_Source"/>
+    <addaction name="actionOpen_Destination"/>
+    <addaction name="actionNew_Destination"/>
+    <addaction name="separator"/>
     <addaction name="action_Save"/>
+    <addaction name="actionSave_As"/>
     <addaction name="separator"/>
     <addaction name="action_Quit"/>
    </widget>
@@ -130,12 +135,9 @@
    <addaction name="menu_Quit"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="action_Open">
+  <action name="actionOpen_Destination">
    <property name="text">
-    <string>&amp;Open</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
+    <string>Open Destination</string>
    </property>
   </action>
   <action name="action_Save">
@@ -223,6 +225,26 @@
    </property>
    <property name="shortcut">
     <string>/</string>
+   </property>
+  </action>
+  <action name="actionOpen_Source">
+   <property name="text">
+    <string>Open Source</string>
+   </property>
+  </action>
+  <action name="actionNew_Destination">
+   <property name="text">
+    <string>New Destination</string>
+   </property>
+  </action>
+  <action name="actionOpen_Image_Directory">
+   <property name="text">
+    <string>Open Image Directory</string>
+   </property>
+  </action>
+  <action name="actionSave_As">
+   <property name="text">
+    <string>Save As</string>
    </property>
   </action>
  </widget>

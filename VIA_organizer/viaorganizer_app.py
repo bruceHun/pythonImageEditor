@@ -1,8 +1,8 @@
-from PyQt5.QtGui import QPixmap, QPolygon, QPen, QPainterPath, QPolygonF, QWheelEvent, QTransform, QKeyEvent, QColor, \
+from PyQt5.QtGui import QPixmap, QPen, QPainterPath, QPolygonF, QWheelEvent, QTransform, QKeyEvent, QColor, \
     QKeySequence, QDropEvent
-from PyQt5.QtWidgets import QFileDialog, QGraphicsPathItem, QTableWidgetItem, QTableWidget, QHeaderView, QMessageBox, \
-    QListWidget, QListWidgetItem
-from PyQt5.QtCore import Qt, QPoint, QPointF, pyqtSignal, QObject
+from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QTableWidget, QHeaderView, QMessageBox, \
+    QListWidget
+from PyQt5.QtCore import Qt, QPoint, QPointF
 
 from viaorganizer import Ui_MainWindow
 from anno_info import Ui_Form
@@ -10,6 +10,7 @@ from PyQt5 import QtWidgets
 from typing import Union
 from configparser import ConfigParser, NoOptionError, NoSectionError
 from copy import deepcopy
+from enum import Enum
 import json
 
 colors = {
@@ -22,16 +23,23 @@ colors = {
 }
 
 
+class FTgt(Enum):
+    DIR = 0
+    SRC = 1
+    DES = 2
+    NEW = 3
+
+
 class ViaOrganizer:
 
     def __init__(self, _ui: Ui_MainWindow, _win: QtWidgets.QMainWindow):
         self.UI: Ui_MainWindow = _ui
-        self.Form: list = [None, None]
+        self.Form: list = [Ui_Form(), Ui_Form()]
         self.FormPreview: Union[QPixmap, None] = None
         self.win: QtWidgets.QMainWindow = _win
         self.directory: str = ''
         self.json_in = [{}, {}]
-        self.sub = [None, None]
+        self.sub = [QtWidgets.QMdiSubWindow(flags=Qt.CustomizeWindowHint), QtWidgets.QMdiSubWindow(flags=Qt.CustomizeWindowHint)]
         self.scene: Union[QtWidgets.QGraphicsScene, None] = None
         self.mark: list = []
         self.config: Union[ConfigParser, None] = None
@@ -39,14 +47,15 @@ class ViaOrganizer:
         self.on_form: int = 1
         self.loading_attribute: bool = False
         self.curr_idx: list = [0, 0]
+        self.initiated: bool = False
 
     def init(self):
         self.config = ConfigParser()
         self.config.optionxform = str
         try:
-            settings = open("viaorg_settings.ini", "r")
+            settings = open("settings.ini", "r")
             settings.close()
-            self.config.read("viaorg_settings.ini")
+            self.config.read("settings.ini")
             self.directory = self.config.get("GeneralSettings", 'ImageDir')
             f_name = [self.config.get("GeneralSettings", 'Destination'), self.config.get("GeneralSettings", 'Source')]
             self.curr_idx[0] = int(self.config.get("WorkingState", "SrcIndex"))
@@ -66,12 +75,15 @@ class ViaOrganizer:
             self.config["WorkingState"] = {'SrcIndex': "0",
                                            'DesIndex': "0"
                                            }
-            with open('viaorg_settings.ini', 'w') as file:
+            with open('settings.ini', 'w') as file:
                 self.config.write(file)
 
         for i in range(2):
-            with open(f_name[i], 'r') as json_file:
-                self.json_in[i] = json.load(json_file)
+            if f_name[i] == '':
+                self.json_in[i] = {}
+            else:
+                with open(f_name[i], 'r') as json_file:
+                    self.json_in[i] = json.load(json_file)
             print(len(self.json_in[i]))
         for i in [1, 0]:
             self.sub[i] = QtWidgets.QMdiSubWindow(flags=Qt.CustomizeWindowHint)
@@ -92,6 +104,8 @@ class ViaOrganizer:
                 self.Form[i].listWidget.addItem(filename)
             if self.Form[i].listWidget.count() > 0:
                 self.Form[i].listWidget.setCurrentRow(self.curr_idx[i])
+            elif i == 1:
+                self.sub[i].setEnabled(False)
 
         f1: Ui_Form = self.Form[0]
         f2: Ui_Form = self.Form[1]
@@ -112,18 +126,26 @@ class ViaOrganizer:
         f1.listWidget.keyPressEvent = self.f1_anno_key_event
         f1.listWidget_2.keyPressEvent = self.f1_region_key_event
 
-        # UI 功能連結
-        self.UI.action_Save.triggered.connect(self.save_file)
-        self.UI.action_Delete.triggered.connect(self.delete_selected_annotations)
-        self.UI.actionZoom_In.triggered.connect(lambda: self.zoom_preview(0.1))
-        self.UI.actionZoom_Out.triggered.connect(lambda: self.zoom_preview(-0.1))
-        self.UI.actionPrevAnnotation.triggered.connect(lambda: self.change_annotation(-1))
-        self.UI.actionNextAnnotation.triggered.connect(lambda: self.change_annotation(1))
-        self.UI.actionPrev_Region.triggered.connect(lambda: self.change_region(-1))
-        self.UI.actionNext_Region.triggered.connect(lambda: self.change_region(1))
-        self.UI.actionSwitch_Tab.triggered.connect(self.UI.mdiArea.activateNextSubWindow)
-        # self.UI.actionConvert_to_simple_name.triggered.connect(self.convert_to_simple_naming)
-        self.UI.actionConvert_to_VIA_naming.triggered.connect(self.convert_to_VIA_naming)
+        if not self.initiated:
+            # UI 功能連結
+            self.UI.actionOpen_Image_Directory.triggered.connect(lambda: self.open_file(FTgt.DIR))
+            self.UI.actionOpen_Destination.triggered.connect(lambda: self.open_file(FTgt.DES))
+            self.UI.actionOpen_Source.triggered.connect(lambda: self.open_file(FTgt.SRC))
+            self.UI.actionNew_Destination.triggered.connect(lambda: self.open_file(FTgt.NEW))
+            self.UI.action_Save.triggered.connect(self.save_file)
+            self.UI.actionSave_As.triggered.connect(self.save_file_as)
+            self.UI.action_Delete.triggered.connect(self.delete_selected_annotations)
+            self.UI.actionZoom_In.triggered.connect(lambda: self.zoom_preview(0.1))
+            self.UI.actionZoom_Out.triggered.connect(lambda: self.zoom_preview(-0.1))
+            self.UI.actionPrevAnnotation.triggered.connect(lambda: self.change_annotation(-1))
+            self.UI.actionNextAnnotation.triggered.connect(lambda: self.change_annotation(1))
+            self.UI.actionPrev_Region.triggered.connect(lambda: self.change_region(-1))
+            self.UI.actionNext_Region.triggered.connect(lambda: self.change_region(1))
+            self.UI.actionSwitch_Tab.triggered.connect(self.switch_tab)
+            # self.UI.actionConvert_to_simple_name.triggered.connect(self.convert_to_simple_naming)
+            self.UI.actionConvert_to_VIA_naming.triggered.connect(self.convert_to_VIA_naming)
+            self.initiated = True
+
         self.Form[0].listWidget.currentRowChanged.connect(lambda: self.update_preview(0))
         self.Form[0].listWidget.itemClicked.connect(lambda: self.update_preview(0))
         self.Form[0].listWidget_2.currentRowChanged.connect(lambda: self.show_attribute(0))
@@ -136,9 +158,15 @@ class ViaOrganizer:
 
     # 更新預覽
     def update_preview(self, idx: int):
+        if not self.sub[idx].isEnabled():
+            return
         self.on_form = idx
         form = self.Form[idx]
-        curr_text = self.Form[idx].listWidget.currentItem().text()
+        try:
+            curr_text = self.Form[idx].listWidget.currentItem().text()
+        except AttributeError:
+            print(f'idx: {idx}, AttributeError raised')
+            return
         f_name = f"{self.directory}/{self.json_in[idx][curr_text]['filename']}"
         if self.FormPreview is None:
             self.FormPreview = self.scene.addPixmap(QPixmap(f_name))
@@ -177,19 +205,21 @@ class ViaOrganizer:
             self.mark.append(self.scene.addPath(path, QPen(color, 5)))
 
     def show_attribute(self, idx: int):
-        if self.on_form != idx:
-            self.update_preview(idx)
+
         curr_idx = self.Form[idx].listWidget_2.currentRow()
+        table: QTableWidget = self.Form[idx].tableWidget
+        table.clear()
         if curr_idx < 0:
             # self.Form[idx].listWidget_3.addItem('N/A')
             return
+        if self.on_form != idx:
+            self.update_preview(idx)
         curr_text = self.Form[idx].listWidget.currentItem().text()
         self.UI.graphicsView.fitInView(self.mark[curr_idx], Qt.KeepAspectRatio)
         self.zoom = self.UI.graphicsView.viewportTransform().m11()
         # Populate ListWidget
         # self.Form[idx].listWidget_3.clear()
-        table: QTableWidget = self.Form[idx].tableWidget
-        table.clear()
+
         table.setHorizontalHeaderLabels(['Attr', 'Value'])
         r = self.json_in[idx][curr_text]['regions'][curr_idx]['region_attributes']
         table.setRowCount(len(r))
@@ -216,24 +246,28 @@ class ViaOrganizer:
     def drop_annotation_src_to_des(self, e: QDropEvent):
         f1: Ui_Form = self.Form[0]
         f2: Ui_Form = self.Form[1]
-        src: QListWidget = e.source()
-        in_text = src.currentItem().text()
-        if e.source() is f2.listWidget:
-            if len(f1.listWidget.findItems(in_text, Qt.MatchExactly)) > 0:
-                result = QMessageBox.question(self.UI.centralwidget,
-                                              "Override annotation?",
-                                              "Annotations for this image already exists.\n"
-                                              "Are your sure you want to override them?\n"
-                                              "\n[Yes] saves your changes"
-                                              "\n[No]  discards your changes",
-                                              QMessageBox.Yes | QMessageBox.No)
-                if result == QMessageBox.No:
-                    return
-            else:
-                super(QListWidget, f1.listWidget).dropEvent(e)
 
-            self.json_in[0][in_text] = deepcopy(self.json_in[1][in_text])
-            print('drop accepted')
+        src_idx = f2.listWidget.selectedIndexes()
+        for index in src_idx:
+            print(index.row())
+
+        if e.source() is f2.listWidget:
+            for index in src_idx:
+                in_text = f2.listWidget.item(index.row()).text()
+                if len(f1.listWidget.findItems(in_text, Qt.MatchExactly)) > 0:
+                    result = QMessageBox.question(self.UI.centralwidget,
+                                                  "Override annotation?",
+                                                  "Annotations for this image already exists.\n"
+                                                  "Are your sure you want to override them?\n"
+                                                  "\n[Yes] saves your changes"
+                                                  "\n[No]  discards your changes",
+                                                  QMessageBox.Yes | QMessageBox.No)
+                    if result == QMessageBox.No:
+                        continue
+
+                self.json_in[0][in_text] = deepcopy(self.json_in[1][in_text])
+                print('drop accepted')
+            super(QListWidget, f1.listWidget).dropEvent(e)
             self.update_preview(0)
         else:
             print('drop denied')
@@ -308,20 +342,40 @@ class ViaOrganizer:
 
     # 另存異動後 JSON 檔案
     def save_file(self):
-        result = QMessageBox.question(self.UI.centralwidget,
-                                      "Save changes?",
-                                      "Would you like to save your changes?\n"
-                                      "Note: This action cannot be undone.",
-                                      QMessageBox.Yes | QMessageBox.No)
+        if self.config.get("GeneralSettings", 'Destination') == '':
+            self.save_file_as()
+        else:
+            result = QMessageBox.question(self.UI.centralwidget,
+                                          "Save changes?",
+                                          "Would you like to save your changes?\n"
+                                          "Note: This action cannot be undone.",
+                                          QMessageBox.Yes | QMessageBox.No)
 
-        if result == QMessageBox.Yes:
-            json_out = {}
-            for i in range(self.Form[0].listWidget.count()):
-                filename = self.Form[0].listWidget.item(i).text()
-                json_out[filename] = self.json_in[0][filename]
+            if result == QMessageBox.Yes:
+                json_out = {}
+                for i in range(self.Form[0].listWidget.count()):
+                    filename = self.Form[0].listWidget.item(i).text()
+                    json_out[filename] = self.json_in[0][filename]
 
-            with open(self.config.get("GeneralSettings", 'Destination'), 'w') as json_file:
-                json_file.write(str(json.dumps(json_out)))
+                with open(self.config.get("GeneralSettings", 'Destination'), 'w') as json_file:
+                    json_file.write(str(json.dumps(json_out)))
+
+    def save_file_as(self):
+        f_name, f_type = QFileDialog.getSaveFileName(
+            caption='Save As',
+            directory=self.directory,
+            filter="JSON files (*.json)")
+        print(f_name)
+        if f_name == '':
+            return
+        json_out = {}
+        for i in range(self.Form[0].listWidget.count()):
+            filename = self.Form[0].listWidget.item(i).text()
+            json_out[filename] = self.json_in[0][filename]
+        with open(f_name, 'w') as json_file:
+            json_file.write(str(json.dumps(json_out)))
+
+        self.config['GeneralSettings']['Destination'] = f_name
 
     # 刪除選取項目
     def delete_selected_annotations(self):
@@ -371,8 +425,65 @@ class ViaOrganizer:
         self.config["WorkingState"] = {'SrcIndex': str(self.Form[0].listWidget.currentRow()),
                                        'DesIndex': str(self.Form[1].listWidget.currentRow())
                                        }
-        with open('viaorg_settings.ini', 'w') as file:
+        with open('settings.ini', 'w') as file:
             self.config.write(file)
+
+    def open_file(self, target: FTgt):
+        if target is FTgt.DIR:
+            print('open directroy')
+            self.directory = str(QFileDialog.getExistingDirectory(
+                caption="Select Directory",
+                directory=self.directory
+            ))
+        elif target is FTgt.SRC:
+            print('open source')
+            res, f_type = QFileDialog.getOpenFileName(
+                caption='Select Source file',
+                directory=self.directory,
+                filter="JSON files (*.json)"
+            )
+            self.config['GeneralSettings']['Source'] = res
+        elif target is FTgt.DES:
+            print('open destination')
+            res, f_type = QFileDialog.getOpenFileName(
+                caption='Select Destination file',
+                directory=self.directory,
+                filter="JSON files (*.json)"
+            )
+            self.config['GeneralSettings']['Destination'] = res
+        elif target is FTgt.NEW:
+            print('create new destination')
+            self.config['GeneralSettings']['Destination'] = ''
+
+        with open('settings.ini', 'w') as file:
+            self.config.write(file)
+
+        self.Form[0].tableWidget.cellChanged.disconnect(self.edit_attribute)
+        for i in [0, 1]:
+            try:
+                self.Form[i].listWidget.currentRowChanged.disconnect(lambda: self.update_preview(i))
+                self.Form[i].listWidget.itemClicked.disconnect(lambda: self.update_preview(i))
+                self.Form[i].listWidget_2.currentRowChanged.disconnect(lambda: self.show_attribute(i))
+                self.Form[i].listWidget_2.itemClicked.disconnect(lambda: self.show_attribute(i))
+            except TypeError:
+                print('not connected')
+
+        for sub_win in self.sub:
+            sub_win.close()
+        self.init()
+
+    def switch_tab(self):
+        idx = 0 if self.UI.mdiArea.activeSubWindow() == self.sub[0] else 1
+        print(f'Activated: {"Destination" if idx == 0 else "Source"}')
+        if idx == 0 and self.config.get('GeneralSettings', 'Source') == '':
+            print('Source is empty')
+            return
+        elif idx == 1 and self.config.get('GeneralSettings', 'Destination') == '':
+            print('Destination is empty')
+            return
+        else:
+            print('Change tab')
+            self.UI.mdiArea.activateNextSubWindow()
 
 
 if __name__ == "__main__":

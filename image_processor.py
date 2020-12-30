@@ -49,10 +49,16 @@ nameref = {'Red': 0, 'Green': 1, 'Blue': 2, 'Yellow': 3, 'Fuchsia': 4, 'Aqua': 5
 MOD_MASK = (QtCore.Qt.CTRL | QtCore.Qt.ALT | QtCore.Qt.SHIFT | QtCore.Qt.META)
 
 
-def get_directory():
-    filedir = str(QFileDialog.getExistingDirectory(None, "Select Directory"))
-    print(f'image dir : "{filedir}"')
-    return filedir
+def get_directory_and_region_data(init_dir: str = '/'):
+    filedir = str(QFileDialog.getExistingDirectory(directory=init_dir, caption="Select Directory"))
+    region_data, f_type = QFileDialog.getOpenFileName(
+        directory=filedir,
+        caption='Select VIA region data',
+        filter="JSON files (*.json)"
+    )
+
+    print(f'image dir : "{filedir}"\nregion data : "{region_data}"')
+    return filedir, region_data
 
 
 def paint_regions_by_class(_pixmap: QPixmap, _data: list):
@@ -129,11 +135,12 @@ class ImageProcessor:
         :return:
         """
         if is_running and not show_annotated_switch:
-            directory = get_directory()
+            directory, r_data = get_directory_and_region_data(self.FM.image_dir)
             if directory == "":
                 return
             else:
                 self.FM.image_dir = directory
+                self.FM.via_fname = r_data
                 print(self.FM.image_dir)
                 self.FM.image_list.clear()
                 self.UI.listWidget.clear()
@@ -150,11 +157,12 @@ class ImageProcessor:
             self.config.read("settings.ini")
         except FileNotFoundError:
             if not is_running:
-                self.FM.image_dir = get_directory()
+                self.FM.image_dir, self.FM.via_fname = get_directory_and_region_data()
             if self.FM.image_dir == "":
                 self.FM.image_dir = "./"
 
             self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
+                                              'ViaRegionData': self.FM.via_fname,
                                               'DefaultClasses': '',
                                               'ZoomScale': 0.1,
                                               'ZoomMaxScale': 5,
@@ -176,6 +184,7 @@ class ImageProcessor:
         try:
             if not is_running:
                 self.FM.image_dir = self.config.get('GeneralSettings', 'ImageDir')
+                self.FM.via_fname = self.config.get('GeneralSettings', 'ViaRegionData')
                 self.default_classes = self.config.get('GeneralSettings', 'DefaultClasses')
                 self.zoom_scale = min(max(float(self.config.get('GeneralSettings', 'ZoomScale')), 0), 5)
                 self.zoom_max = min(max(float(self.config.get('GeneralSettings', 'ZoomMaxScale')), 1), 10)
@@ -192,7 +201,7 @@ class ImageProcessor:
         except NoOptionError:
             success = False
 
-        # 載入新目錄或讀取錯誤時套用預設工作階段設定
+        # 載入新目錄或讀取錯誤時套用預設設定
         if is_running or not success:
             self.zoom_scale = 0.1
             self.zoom_max = 5
@@ -202,6 +211,8 @@ class ImageProcessor:
             self.erase_mode = True
             self.scroll_speed = 5
             self.border = 50
+            if self.FM.via_fname == '' or self.FM.image_dir == '':
+                self.FM.image_dir, self.FM.via_fname = get_directory_and_region_data()
 
         if not self.erase_mode:
             self.UI.EraserBtn.setStyleSheet("background-color: rgb(128, 128, 128); font: 9pt 'Arial';")
@@ -823,6 +834,7 @@ class ImageProcessor:
             self.save_annotation()
 
         self.config["GeneralSettings"] = {'ImageDir': self.FM.image_dir,  # 圖片資料夾
+                                          'ViaRegionData': self.FM.via_fname,
                                           'DefaultClasses': self.default_classes,
                                           'ZoomScale': str(self.zoom_scale),
                                           'ZoomMaxScale': str(self.zoom_max),
@@ -871,7 +883,8 @@ class ImageProcessor:
         ui = Ui_DialogSettings()
         ui.setupUi(dialog_settings)
 
-        ui.lineEdit.setText(self.FM.image_dir)
+        ui.lineEditImageDirectory.setText(self.FM.image_dir)
+        ui.lineEditRegionData.setText(self.FM.via_fname)
         ui.lineEdit_2.setText(self.default_classes)
         ui.lineEdit_3.setText(str(self.zoom_scale))
         ui.lineEdit_4.setText(str(self.zoom_max))
