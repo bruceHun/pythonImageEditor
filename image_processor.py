@@ -20,15 +20,23 @@ import csv
 import re
 
 
+# 繪圖模式
 class PMode(Enum):
-    Brush = 1
-    Select = 2
+    """
+    繪圖模式
+    """
+    Brush = 1   # 筆刷模式
+    Select = 2  # 多邊形選取填色
 
 
+# 滑鼠操作模式
 class MMode(Enum):
-    Neutral = 0
-    Painting = 1
-    Grabing = 2
+    """
+    滑鼠操作模式
+    """
+    Neutral = 0     # 一般
+    Painting = 1    # 使用畫筆
+    Grabing = 2     # 抓取畫布
 
 
 @dataclass
@@ -63,10 +71,10 @@ def get_directory_and_region_data(init_dir: str = '/'):
 
 def paint_regions_by_class(_pixmap: QPixmap, _data: list):
     """
-
-    :param _pixmap:
-    :param _data:
-    :return:
+    將標示遮罩繪製於指定類別圖層。
+    :param _pixmap:類別圖層
+    :param _data:遮罩資料 (QPolygon + 填滿顏色)
+    :return:None
     """
     # Painting prep
     pt = QPainter(_pixmap)
@@ -236,9 +244,9 @@ class ImageProcessor:
 
     def key_event(self, e: QKeyEvent):
         """
-
-        :param e:
-        :return:
+        鍵盤事件控制。
+        :param e:鍵盤事件
+        :return:None
         """
         if self.is_processing:
             return
@@ -265,8 +273,10 @@ class ImageProcessor:
             idx = (self.UI.comboBox.currentIndex() - 1) % self.UI.comboBox.count()
             self.UI.comboBox.setCurrentIndex(idx)
             self.update_layer_state()
+
+        # 使用多邊形填色著色中
         if self.m_mode is MMode.Painting and self.paint_mode == PMode.Select:
-            # 多邊形填色
+            # 按下 Enter/Return 結束圈選進行著色
             if key == QtCore.Qt.Key_Enter or key == QtCore.Qt.Key_Return:
                 self.m_mode = MMode.Neutral
                 self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
@@ -278,6 +288,7 @@ class ImageProcessor:
                 self.painter.drawPolygon(QPolygonF(self.selections_pnt))
                 self.painter.end()
                 self.update_mask(layer_highlight=True)
+                # 移除多邊形外框及指示線
                 if self.display_line.scene() == self.scene:
                     self.scene.removeItem(self.display_line)
                 if self.display_sel.scene() == self.scene:
@@ -285,6 +296,7 @@ class ImageProcessor:
                 self.selections_pnt.clear()
                 self.BM.unsaved_actions += 1
                 self.BM.push(self.UI.comboBox.currentText(), self.pixmap_mask[self.UI.comboBox.currentText()])
+            # 按下 Esc 取消圈選
             elif key == QtCore.Qt.Key_Escape:
                 self.m_mode = MMode.Neutral
                 if self.display_line.scene() == self.scene:
@@ -295,35 +307,40 @@ class ImageProcessor:
 
     def mouse_wheel_event(self, e: QWheelEvent):
         """
-
-        :param e:
-        :return:
+        滑鼠滾輪事件控制。
+        :param e: 滑鼠滾輪事件
+        :return: None
         """
         delta: Union[QtCore.QPoint, float] = e.pixelDelta()
         if delta is None or delta.y() == 0:
             delta = e.angleDelta() / 10
         modifiers = int(e.modifiers())
 
+        # 組合鍵控制
         if modifiers and modifiers & MOD_MASK == modifiers:
             keyname = QKeySequence(modifiers).toString()
+            # Ctrl+: 縮放至游標
             if keyname == "Ctrl+":
                 oldpos = self.UI.graphicsView.mapToScene(e.pos())
                 self.scale_display(delta.y() * 0.01)
                 newpos = self.UI.graphicsView.mapToScene(e.pos())
                 deltapos = newpos - oldpos
                 self.UI.graphicsView.translate(deltapos.x(), deltapos.y())
+            # Ctrl+Shift+: 改變筆刷大小
             if keyname == "Ctrl+Shift+":
                 value = self.UI.BrushSizeSlider.value() + delta.y()
                 self.UI.BrushSizeSlider.setValue(value)
+            # Shift+: 水平捲動
             if keyname == "Shift+":
                 delta *= self.scroll_speed
                 value = self.UI.graphicsView.horizontalScrollBar().value() + delta.y()
                 self.UI.graphicsView.horizontalScrollBar().setValue(value)
-        else:
+        else:   # 一般控制：垂直捲動
             delta *= self.scroll_speed
             value = self.UI.graphicsView.verticalScrollBar().value() + delta.y()
             self.UI.graphicsView.verticalScrollBar().setValue(value)
 
+        # 筆刷模式下須更新筆刷游標位置
         if self.paint_mode == PMode.Brush:
             # Update cursor position
             r = int(self.brush_size / 2)
@@ -335,35 +352,41 @@ class ImageProcessor:
     # 開始繪圖
     def start_paint(self, e: QMouseEvent):
         """
-
-        :param e:
-        :return:
+        開始著色動作。
+        :param e: 滑鼠事件
+        :return: None
         """
         if self.layer_hidden[self.UI.comboBox.currentText()] is QtCore.Qt.Checked:
             return
+        # 狀態切換
         self.m_mode = MMode.Painting
         r = int(self.brush_size / 2)
         curr_pos = self.UI.graphicsView.mapToScene(e.pos())
+        # 筆刷模式
         if self.paint_mode == PMode.Brush:
             self.painter = QPainter(self.pixmap_mask[self.UI.comboBox.currentText()])
+            # 筆刷設定
             p = self.painter.pen()
             p.setColor(label_colors[self.label_color])
             self.painter.setPen(p)
             self.painter.setBrush(QBrush(label_colors[self.label_color]))
-
+            # 混色模式設定
             self.painter.setCompositionMode(
                 QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
             )
+            # 畫圓
             self.painter.drawEllipse(curr_pos.x() - r, curr_pos.y() - r, self.brush_size, self.brush_size)
+        # 多邊形選取填色
         elif self.paint_mode is PMode.Select:
+            # 加入選取點，繪製多邊形框線
             self.selections_pnt.append(curr_pos)
             self.draw_polygon_selection()
 
     # 結束繪圖
     def end_paint(self):
         """
-
-        :return:
+        結束著色動作。
+        :return: None
         """
         if self.paint_mode == PMode.Brush:
             self.update_mask()
@@ -374,9 +397,9 @@ class ImageProcessor:
 
     def mouse_press(self, e: QMouseEvent):
         """
-
-        :param e:
-        :return:
+        按下滑鼠按鈕事件控制。
+        :param e: 滑鼠事件
+        :return: None
         """
         if e.button() == QtCore.Qt.LeftButton and self.m_mode is not MMode.Grabing:
             for item in self.scene.items():
@@ -390,12 +413,14 @@ class ImageProcessor:
 
     def mouse_release(self, e: QMouseEvent):
         """
-
-        :param e:
-        :return:
+        釋放滑鼠按鍵事件控制。
+        :param e: 滑鼠事件
+        :return: None
         """
+        # 著色模式下釋放左鍵結束著色動作
         if e.button() == QtCore.Qt.LeftButton and self.m_mode is MMode.Painting:
             self.end_paint()
+        # 抓取模式下釋放右鍵結束拖拉畫布動作
         elif e.button() == QtCore.Qt.RightButton and self.m_mode is MMode.Grabing:
             self.m_mode = MMode.Neutral
             cursor_type = QtCore.Qt.ArrowCursor if self.paint_mode is PMode.Select else QtCore.Qt.CrossCursor
@@ -404,21 +429,28 @@ class ImageProcessor:
     # 滑鼠游標在繪圖區移動
     def mouse_movement(self, e: QMouseEvent):
         """
-
-        :param e:
-        :return:
+        游標移動事件控制。
+        :param e: 游標移動事件
+        :return: None
         """
         r = int(self.brush_size / 2)
         mappos = self.UI.graphicsView.mapToScene(e.pos())
         curr_x, curr_y = mappos.x() - r, mappos.y() - r
+        # 著色模式
         if self.m_mode is MMode.Painting:
+            # 筆刷模式
             if self.paint_mode == PMode.Brush:
+                # 設定混色模式。擦除使用清除模式；著色使用來源顏色 (新顏色取代舊顏色)
                 self.painter.setCompositionMode(
                     QPainter.CompositionMode_Clear if self.erase_mode else QPainter.CompositionMode_Source
                 )
+                # 畫圓
                 self.painter.drawEllipse(curr_x, curr_y, self.brush_size, self.brush_size)
+                # 更新圖層
                 self.update_mask()
+            # 多邊形選取填色
             elif self.paint_mode == PMode.Select:
+                # 畫出最後一點與滑鼠游標間的連線
                 top = len(self.selections_pnt) - 1
                 ax, ay = self.selections_pnt[top].x(), self.selections_pnt[top].y()
                 if self.display_line is not None and self.display_line.scene() == self.scene:
@@ -426,6 +458,7 @@ class ImageProcessor:
                 curr_scale = self.UI.graphicsView.viewportTransform().m11()
                 self.display_line = self.scene.addLine(ax, ay, mappos.x(), mappos.y(),
                                                        QPen(QColor(255, 255, 0, 255), 5 / curr_scale))
+        # 抓取畫布
         elif self.m_mode is MMode.Grabing:
             delta: QPoint = -(e.pos() - self.prev_pos)
             dx = self.UI.graphicsView.horizontalScrollBar().value() + delta.x()
@@ -433,7 +466,7 @@ class ImageProcessor:
             self.UI.graphicsView.horizontalScrollBar().setValue(dx)
             self.UI.graphicsView.verticalScrollBar().setValue(dy)
             self.prev_pos = e.pos()
-
+        # 筆刷模式下要更新筆刷游標位置
         if self.paint_mode == PMode.Brush:
             self.brush_cursor.setPos(QtCore.QPoint(curr_x, curr_y))
 
@@ -449,9 +482,9 @@ class ImageProcessor:
     # 調整顯示大小
     def scale_display(self, value: float):
         """
-
-        :param value:
-        :return:
+        調整繪圖區顯示大小。
+        :param value:縮放值
+        :return:None
         """
         # Noise removal
         if abs(value) < 0.01:
@@ -471,9 +504,9 @@ class ImageProcessor:
     # 調整 viewport 符合圖片大小
     def scale_to_fit(self, e: QWheelEvent = None):
         """
-
-        :param e:
-        :return:
+        調整 viewport 符合圖片大小。
+        :param e:None
+        :return:None
         """
         if self.display_img is not None:
             rect = self.UI.graphicsView.scene().sceneRect()
@@ -482,9 +515,9 @@ class ImageProcessor:
     # 切換圖片
     def change_image(self, _index: int):
         """
-
-        :param _index:
-        :return:
+        切換圖片，包含底圖與遮罩圖層。
+        :param _index: 圖片位於清單中的編號
+        :return:None
         """
         if self.is_processing:
             return
@@ -544,11 +577,11 @@ class ImageProcessor:
 
     def draw_annotations(self, _index):
         """
-
-        :param _index:
+        繪製標示資料
+        :param _index:相片清單編號
         :return:
         """
-        # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
+        # 初始化動作：建立空白圖層、清除舊圖層、清除圖層顯示物件、清除隱藏圖層清單
         blank = QPixmap(self.pixmap_img.size())
         blank.fill(Qt.transparent)
         self.pixmap_mask.clear()
@@ -563,13 +596,16 @@ class ImageProcessor:
         # 利用 label 檔的輪廓資訊繪製遮罩
         if len(self.FM.annotations) > 0:
             try:
+                # 紀錄各類物件的數量，供底部資訊欄用
                 class_counter: dict = {}
+                # 去除清單編號，取得相片名稱
                 f_name = re.sub("\\[([0-9]+)\\] ", "", self.FM.image_list[_index])
                 f_size = os_path.getsize(f'{self.FM.image_dir}/{f_name}')
                 f_name = f'{f_name}{f_size}'
                 a = self.FM.annotations[f_name]
-                # polygons = [r['shape_attributes'] for r in a['regions']]
 
+                # 以多執行緒方式處理各個標示區塊
+                # 重置顏色編號
                 self.cidx = 0
                 result: dict = {}
                 threads: list = []
@@ -582,6 +618,7 @@ class ImageProcessor:
                     t.join()
                 threads.clear()
 
+                # 以多執行緒方式對各個圖層分別進行繪製
                 for key, val in result.items():
                     try:
                         self.pixmap_mask[key]
@@ -594,7 +631,7 @@ class ImageProcessor:
                     threads.append(t)
                 for t in threads:
                     t.join()
-
+                # 更新底部資訊欄
                 msg = f"{len(a['regions'])} region(s) loaded. | "
                 for key, val in class_counter.items():
                     msg += f"{val} {key}(s), "
@@ -612,9 +649,9 @@ class ImageProcessor:
 
     def process_region(self, r, res: dict):
         """
-
-        :param r:
-        :param res:
+        取出標示區域外圍各點座標並轉換為供繪製用的 QPolygon 物件
+        :param r: 標示區域資料
+        :param res: 暫存結果用之 dictionary
         :return:
         """
         area: QPolygon = QPolygon()
@@ -622,32 +659,37 @@ class ImageProcessor:
         for i in range(len(p['all_points_x'])):
             area.append(QPoint(p['all_points_x'][i], p['all_points_y'][i]))
 
+        # 資料中有 Color 屬性則使用該顏色填滿，否則依序輪流指派填滿顏色
         try:
             paint_color = label_colors[nameref[r['region_attributes']['Color']]]
         except KeyError:
             paint_color = label_colors[self.cidx]
             self.cidx = (self.cidx + 1) % 6
-
+        # 以第一個屬性作為類別名稱
         classname = next(iter(r['region_attributes'].values()))
+        # 結果依據類別存放，將繪製於不同圖層
         try:
             res[classname]
         except KeyError:
             res[classname] = []
-        # 顯示列別標籤
+        # 顯示類別標籤
         if self.show_tag:
             tag = self.scene.addSimpleText(classname, QFont("Cursive", self.tag_size, QFont.Bold))
             tag.setPos(area.last())
             tag.setPen(QPen(QColor(0, 0, 0), self.tag_size / 15))
             tag.setBrush(Qt.white)
             tag.setZValue(1)
+        # 新增結果至 res
         res[classname].append([paint_color, area])
 
     # 更新顯示遮罩
     def update_mask(self, layer_highlight: bool = False):
         """
-
+        更新圖層。
+        :param layer_highlight: 僅工作中圖層顯示完整顏色
         :return:
         """
+        # 人工描繪時僅更新工作中圖層
         if self.m_mode is MMode.Painting:
             classname = self.UI.comboBox.currentText()
             pixmap = self.pixmap_mask[classname]
@@ -657,7 +699,7 @@ class ImageProcessor:
                 self.display_mask[classname] = self.scene.addPixmap(pixmap)
                 self.display_mask[classname].setOpacity(0.5)
                 self.layer_hidden[classname] = QtCore.Qt.Unchecked
-        else:
+        else:   # 更新所有圖層
             classname = self.UI.comboBox.currentText()
             threads = []
             for key, val in self.pixmap_mask.items():
@@ -668,9 +710,18 @@ class ImageProcessor:
                 t.join()
 
     def set_masks(self, key: str, val: QPixmap, classname: str, layer_highlight: bool):
+        """
+        設定圖層資料及圖層顯示物件。
+        :param key: 圖層類別
+        :param val: 圖層資料
+        :param classname: 工作中類別
+        :param layer_highlight: 僅工作中圖層顯示完整顏色
+        :return:
+        """
+        # 全彩顯示
         if not layer_highlight or key == classname:
             pixmap = val
-        else:
+        else:   # 使用單一顏色
             pixmap: QPixmap = QPixmap(val.size())
             pixmap.fill(Colors.SANDYBROWN)
             pixmap.setMask(val.createMaskFromColor(Qt.transparent))
@@ -685,8 +736,8 @@ class ImageProcessor:
     # 繪製多邊形選擇外框
     def draw_polygon_selection(self):
         """
-
-        :return:
+        繪製多邊形圈選外框。
+        :return:None
         """
         if self.display_sel is not None and self.display_sel.scene() == self.scene:
             self.scene.removeItem(self.display_sel)
@@ -699,7 +750,7 @@ class ImageProcessor:
     # 復原動作
     def undo_changes(self):
         """
-
+        復原動作。
         :return:
         """
         classname = self.UI.comboBox.currentText()
@@ -711,8 +762,8 @@ class ImageProcessor:
     # 重做動作
     def redo_changes(self):
         """
-
-        :return:
+        重作動作。
+        :return:None
         """
         classname = self.UI.comboBox.currentText()
         pixmap = self.BM.redo_changes(classname)
@@ -723,8 +774,8 @@ class ImageProcessor:
     # 改變筆刷大小
     def change_brush_size(self):
         """
-
-        :return:
+        改變筆刷大小。
+        :return: None
         """
         if self.paint_mode == PMode.Brush:
             value = self.UI.BrushSizeSlider.value()
@@ -734,10 +785,11 @@ class ImageProcessor:
     # 改變筆刷顏色
     def change_brush_color(self, index: int):
         """
-
-        :param index:
+        改變筆刷顏色。
+        :param index: 顏色編號
         :return:
         """
+        # 還原顏色按鈕
         self.UI.ColorBtn1.setStyleSheet("background-color: rgb(128, 0, 0);")
         self.UI.ColorBtn2.setStyleSheet("background-color: rgb(0, 128, 0);")
         self.UI.ColorBtn3.setStyleSheet("background-color: rgb(0, 0, 128);")
@@ -745,6 +797,7 @@ class ImageProcessor:
         self.UI.ColorBtn5.setStyleSheet("background-color: rgb(128, 0, 128);")
         self.UI.ColorBtn6.setStyleSheet("background-color: rgb(0, 128, 128);")
 
+        # 選定顏色按鈕高亮表示
         if self.erase_mode:
             self.erase_mode = False
             self.UI.EraserBtn.setStyleSheet("background-color: rgb(128, 128, 128); font: 9pt 'Arial';")
@@ -761,13 +814,14 @@ class ImageProcessor:
             self.UI.ColorBtn5.setStyleSheet("background-color: rgb(255, 0, 255);")
         elif index == 5:
             self.UI.ColorBtn6.setStyleSheet("background-color: rgb(0, 255, 255);")
+        # 產生筆刷游標
         self.gen_brush()
 
     # 改變底圖亮度
     def change_photo_brightness(self):
         """
-
-        :return:
+        改變底圖亮度。
+        :return: None
         """
         value = self.UI.brightnessSlider.value() / 100
         self.display_img.setOpacity(value)
@@ -777,8 +831,8 @@ class ImageProcessor:
     # 產生筆刷
     def gen_brush(self):
         """
-
-        :return:
+        產生筆刷游標。
+        :return: None
         """
         # if self.paint_mode is not PMode.Brush:
         #     return
@@ -786,6 +840,7 @@ class ImageProcessor:
         if self.brush_cursor is not None:
             curr_pos = self.brush_cursor.pos()
             self.scene.removeItem(self.brush_cursor)
+        # 擦去模式下為白色，否則依目前選定顏色
         if self.erase_mode:
             brush_color = Qt.white
         else:
@@ -801,12 +856,13 @@ class ImageProcessor:
         if not self.UI.graphicsView.underMouse() or self.paint_mode is not PMode.Brush:
             self.brush_cursor.hide()
 
-    # 擦去模式開關
+    # 啟用擦去模式
     def erase_mode_on(self):
         """
-
-        :return:
+        啟用擦去模式。
+        :return: None
         """
+        # 調整色彩按鈕高亮狀態
         self.erase_mode = True
         self.UI.EraserBtn.setStyleSheet("background-color: rgb(255, 255, 255); font: 9pt 'Arial';")
         if self.label_color == 0:
@@ -821,14 +877,15 @@ class ImageProcessor:
             self.UI.ColorBtn5.setStyleSheet("background-color: rgb(128, 0, 128);")
         elif self.label_color == 5:
             self.UI.ColorBtn6.setStyleSheet("background-color: rgb(0, 128, 128);")
+        # 產生筆刷游標
         self.gen_brush()
 
     # 離開程式
     def on_exit(self, e):
         """
-
+        離開程式。
         :param e:
-        :return:
+        :return: None
         """
         if self.BM.unsaved_actions > 0:
             self.save_annotation()
@@ -854,30 +911,30 @@ class ImageProcessor:
 
     def save_mask(self):
         """
-
-        :return:
+        儲存遮罩圖片 (圖片名稱_mask.tiff)。
+        :return: None
         """
         self.FM.save_mask(self.pixmap_mask)
 
     def save_annotation(self):
         """
-
-        :return:
+        儲存標示檔案。
+        :return: None
         """
         if self.BM.unsaved_actions != 0:
             return self.FM.save_annotation(self.pixmap_mask)
 
     def delete_mask(self):
         """
-
-        :return:
+        刪除遮罩圖片檔案。
+        :return: None
         """
         self.FM.delete_mask()
 
     def change_settings(self):
         """
-
-        :return:
+        修改設定。
+        :return: None
         """
         dialog_settings = QDialog()
         ui = Ui_DialogSettings()
@@ -919,8 +976,8 @@ class ImageProcessor:
 
     def add_class(self):
         """
-
-        :return:
+        增加類別。
+        :return: None
         """
         dialog_line_edit = QDialog()
         ui = Ui_DialogLineEdit()
@@ -947,7 +1004,7 @@ class ImageProcessor:
 
             # blank = QImage(self.pixmap_img.width(), self.pixmap_img.height(), QImage.Format_ARGB32)
             blank = QPixmap(self.pixmap_img.size())
-            blank.fill(Colors.BLANK)
+            blank.fill(Qt.transparent)
 
             self.pixmap_mask[newclass] = blank
             self.BM.push(newclass, self.pixmap_mask[newclass])
@@ -961,8 +1018,8 @@ class ImageProcessor:
 
     def change_paint_mode(self):
         """
-
-        :return:
+        變更繪圖模式。
+        :return: None
         """
         if self.UI.action_Select_Polygon.isChecked():
             self.paint_mode = PMode.Select
@@ -975,11 +1032,19 @@ class ImageProcessor:
             self.UI.graphicsView.viewport().setCursor(QCursor(QtCore.Qt.CrossCursor))
 
     def update_layer_state(self):
+        """
+        更新圖層顯示狀態。
+        :return: None
+        """
         curr_class = self.UI.comboBox.currentText()
         self.UI.HideLayerCheckBox.setCheckState(self.layer_hidden[curr_class])
         self.update_mask(layer_highlight=True)
 
     def hide_layer(self):
+        """
+        隱藏圖層。
+        :return: None
+        """
         curr_class = self.UI.comboBox.currentText()
         if self.UI.HideLayerCheckBox.isChecked():
             self.display_mask[curr_class].hide()
@@ -989,4 +1054,8 @@ class ImageProcessor:
             self.layer_hidden[curr_class] = QtCore.Qt.Unchecked
 
     def export_all(self):
+        """
+        輸出全部遮罩圖片。
+        :return: None
+        """
         self.FM.export_all()

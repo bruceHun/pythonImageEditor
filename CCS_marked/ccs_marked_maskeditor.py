@@ -10,6 +10,7 @@ from ccsm_mainwindow import Ui_MainWindow
 from threading import Thread
 from time import sleep
 
+# 圖片資料夾名稱對照表
 DIR_MAP = {'Photogroup 1': '正拍', 'Photogroup 2': '側拍', 'Photogroup 3': '還拍'}
 
 

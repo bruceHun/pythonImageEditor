@@ -51,6 +51,13 @@ def get_contours(pixmap: QPixmap):
 
 
 def add_regions(_regions: list, typename: str, pixmap: QPixmap):
+    """
+    將圖層資料轉為 VIA 格式並更新至標示資料。
+    :param _regions: 標示資料
+    :param typename: 類別名稱
+    :param pixmap: 圖層資料
+    :return: None
+    """
     contours, cids = get_contours(pixmap)
     # Area 內容
     j = 0
@@ -72,6 +79,13 @@ def add_regions(_regions: list, typename: str, pixmap: QPixmap):
 
 
 def add_annotation(filename: str, filesize: int, file: dict) -> list:
+    """
+    創建圖片資訊。
+    :param filename: 圖檔名稱
+    :param filesize: 圖檔大小
+    :param file: 標示資料
+    :return: None
+    """
     a_name = f'{filename}{filesize}'
     file[a_name] = {}
     root = file[a_name]
@@ -82,6 +96,9 @@ def add_annotation(filename: str, filesize: int, file: dict) -> list:
 
 
 class FileManager:
+    """
+    檔案管理員
+    """
 
     def __init__(self):
         self.image_list: list = []
@@ -95,6 +112,11 @@ class FileManager:
         self.dialog_root = _parent
 
     def get_file_lists(self, show_annotated_only: bool = False):
+        """
+        取得相片清單。
+        :param show_annotated_only: 僅顯示有標記的相片
+        :return: None
+        """
         f_index = 1
         try:
             with open(self.via_fname, 'r') as json_file:
@@ -115,6 +137,11 @@ class FileManager:
                     f_index += 1
 
     def save_annotation(self, pixmap: dict):
+        """
+        儲存標示檔案。
+        :param pixmap: 各類別圖層資料
+        :return: None
+        """
         result = QMessageBox.question(self.dialog_root,
                                       "Save changes?",
                                       "Would you like to save your changes?\n"
@@ -154,6 +181,11 @@ class FileManager:
 
     # 儲存遮罩圖片
     def save_mask(self, pixmaps: dict):
+        """
+        儲存遮罩圖片。
+        :param pixmaps: 各類別圖層資料
+        :return: None
+        """
         result = QMessageBox.question(self.dialog_root,
                                       "Export to mask file?",
                                       "Would you like to export current mask to an image file?",
@@ -162,6 +194,7 @@ class FileManager:
             pixmap: QPixmap = QPixmap()
             painter: QPainter = QPainter()
             i = 0
+            # 將所有內容疊合至單一圖層
             for key, val in pixmaps.items():
                 if i == 0:
                     pixmap = val.copy()
@@ -172,6 +205,7 @@ class FileManager:
             painter.end()
             f_name = os_path.basename(re_sub("\\[([0-9]+)\\] ", "", self.image_list[self.index]))
             path = f'{self.image_dir}/{f_name}_mask.tif'
+            # 依顏色產生遮罩後存檔
             bit = pixmap.createMaskFromColor(QColor(0, 0, 0, 0))
             bit.save(path)
             # self.ui.statusbar.showMessage(f'Mask image saved ({path})')
@@ -181,6 +215,10 @@ class FileManager:
 
     # 刪除遮罩圖片
     def delete_mask(self):
+        """
+        刪除目前選定之遮罩圖片。
+        :return: None
+        """
         path = f'{self.image_dir}/{self.image_list[self.index]}_mask.tif'
         image_exist = os_path.isfile(path)
         if not image_exist:
@@ -194,6 +232,10 @@ class FileManager:
             os_remove(path)
 
     def export_all(self):
+        """
+        輸出所有遮罩圖片。
+        :return: None
+        """
 
         _index = 0
         for key, data in self.annotations.items():

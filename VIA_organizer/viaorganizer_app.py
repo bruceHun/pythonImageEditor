@@ -186,6 +186,7 @@ class ViaOrganizer:
         self.UI.graphicsView.fitInView(self.FormPreview, Qt.KeepAspectRatio)
         self.zoom = self.UI.graphicsView.viewportTransform().m11()
 
+        # 繪製個別外框
         for mk in self.mark:
             self.scene.removeItem(mk)
         self.mark.clear()
@@ -205,6 +206,11 @@ class ViaOrganizer:
             self.mark.append(self.scene.addPath(path, QPen(color, 5)))
 
     def show_attribute(self, idx: int):
+        """
+        對焦物件並顯示屬性資料。
+        :param idx:
+        :return:
+        """
 
         curr_idx = self.Form[idx].listWidget_2.currentRow()
         table: QTableWidget = self.Form[idx].tableWidget
@@ -215,6 +221,7 @@ class ViaOrganizer:
         if self.on_form != idx:
             self.update_preview(idx)
         curr_text = self.Form[idx].listWidget.currentItem().text()
+        # 對焦物件
         self.UI.graphicsView.fitInView(self.mark[curr_idx], Qt.KeepAspectRatio)
         self.zoom = self.UI.graphicsView.viewportTransform().m11()
         # Populate ListWidget

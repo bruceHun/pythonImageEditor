@@ -37,11 +37,20 @@ class BufferItem:
 
 
 class ImageBufferManager:
+    """
+    圖層緩衝區管理員
+    """
     pix_buffers: dict = {}
     unsaved_actions: int = 0
 
     # 更新 Buffer
     def push(self, classname: str, pixmap: QPixmap):
+        """
+        依據類別圖層，新增資料至對應緩衝區。若新增位置不為緩衝區末端，新增位置之後的資料將被清除。
+        :param classname: 類別名稱
+        :param pixmap: 圖層資料
+        :return:
+        """
         try:
             curr_buffer: BufferItem = self.pix_buffers[classname]
         except KeyError:
@@ -52,6 +61,11 @@ class ImageBufferManager:
 
     # 清空 Buffer
     def renew_buffer(self, init_data: dict = None):
+        """
+        重置緩衝區。
+        :param init_data: 初始資料
+        :return: None
+        """
         for buffer in self.pix_buffers.values():
             buffer.data.clear()
         self.pix_buffers.clear()
@@ -66,6 +80,11 @@ class ImageBufferManager:
 
     # 復原動作
     def undo_changes(self, _classname: str) -> Union[QPixmap, QPixmap, None]:
+        """
+        依據類別圖層，使用緩衝區中上一筆資料。
+        :param _classname: 類別名稱
+        :return: None
+        """
         self.unsaved_actions = max(self.unsaved_actions - 1, 0)
         try:
             buffer: BufferItem = self.pix_buffers[_classname]
@@ -75,6 +94,11 @@ class ImageBufferManager:
 
     # 重做動作
     def redo_changes(self, _classname: str) -> Union[QPixmap, QPixmap, None]:
+        """
+        依據類別圖層，使用下一筆緩衝區資料。
+        :param _classname: 類別名稱
+        :return:
+        """
         self.unsaved_actions = min(self.unsaved_actions + 1, MAX_BUFFER_SIZE)
         try:
             buffer: BufferItem = self.pix_buffers[_classname]
